@@ -1,7 +1,9 @@
 import * as React from "react";
+import Link from "next/link";
 import { Container } from "./Container";
 import { Instagram, Twitter, Youtube, Facebook, ArrowRight } from "lucide-react";
 import Image from "next/image";
+import { Button } from "../primitives/Button";
 
 export function Footer() {
     const currentYear = new Date().getFullYear();
@@ -18,6 +20,11 @@ export function Footer() {
         { label: "Diretoria", href: "/diretoria" },
         { label: "Titulos", href: "/titulos" },
         { label: "Contato", href: "/contato" }
+    ];
+    const legalLinks = [
+        { label: "Politica de Privacidade", href: "/politica-de-privacidade" },
+        { label: "Termos de Uso", href: "/termos-de-uso" },
+        { label: "Area Restrita", href: "/area-restrita", accent: true }
     ];
 
     return (
@@ -64,7 +71,7 @@ export function Footer() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-8 md:col-span-8 lg:col-span-7 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-8 md:col-span-8 sm:grid-cols-2 lg:col-span-7 lg:grid-cols-3">
                         <div>
                             <h3 className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-navy-400">
                                 <span className="h-2 w-2 rounded-sm bg-blue-500/50" />
@@ -73,9 +80,9 @@ export function Footer() {
                             <ul className="space-y-4">
                                 {navigationLinks.map((item) => (
                                     <li key={item.label}>
-                                        <a href={item.href} className="inline-block text-sm text-cream-300 transition-colors duration-300 hover:translate-x-1 hover:text-blue-400">
+                                        <Link href={item.href} className="inline-block text-sm text-cream-300 transition-colors duration-300 hover:translate-x-1 hover:text-blue-400">
                                             {item.label}
-                                        </a>
+                                        </Link>
                                     </li>
                                 ))}
                             </ul>
@@ -89,26 +96,39 @@ export function Footer() {
                             <ul className="space-y-4">
                                 {institutionalLinks.map((item) => (
                                     <li key={item.label}>
-                                        <a href={item.href} className="inline-block text-sm text-cream-300 transition-colors duration-300 hover:translate-x-1 hover:text-gold-400">
+                                        <Link href={item.href} className="inline-block text-sm text-cream-300 transition-colors duration-300 hover:translate-x-1 hover:text-gold-400">
                                             {item.label}
-                                        </a>
+                                        </Link>
                                     </li>
                                 ))}
                             </ul>
                         </div>
 
-                        <div className="col-span-2 sm:col-span-1">
+                        <div className="sm:col-span-2 lg:col-span-1">
                             <h3 className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-navy-400">
                                 <span className="h-2 w-2 rounded-sm bg-red-500/50" />
                                 Seja parceiro
                             </h3>
-                            <p className="mb-4 text-xs leading-relaxed text-cream-300/80">
-                                Sua marca pode aparecer na home, na pagina de patrocinadores e nas narrativas do clube.
-                            </p>
-                            <a href="/contato" className="group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-navy-950 transition-colors hover:bg-cream-100">
-                                Falar com o clube
-                                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                            </a>
+                            <div className="rounded-2xl border border-navy-800 bg-navy-900/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                                <p className="text-xs leading-relaxed text-cream-300/85">
+                                    Sua marca pode aparecer na home, na pagina de patrocinadores e nas narrativas do clube.
+                                </p>
+                                <div className="mt-5 space-y-3">
+                                    <Button
+                                        asChild
+                                        size="md"
+                                        className="group min-h-12 w-full rounded-xl border border-blue-400/25 bg-blue-600 px-4 text-sm text-cream-100 shadow-[0_16px_36px_rgba(30,77,140,0.32)] hover:-translate-y-0.5 hover:bg-blue-500 sm:text-base"
+                                    >
+                                        <Link href="/contato">
+                                            Falar com o clube
+                                            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                                        </Link>
+                                    </Button>
+                                    <p className="text-[11px] leading-relaxed text-cream-300/55">
+                                        Conversa comercial, parceria institucional e ativacoes da marca.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -121,9 +141,15 @@ export function Footer() {
                     </div>
 
                     <div className="flex flex-wrap justify-center gap-6 text-xs font-medium text-cream-300/60">
-                        <a href="#" className="transition-colors hover:text-cream-100">Politica de Privacidade</a>
-                        <a href="#" className="transition-colors hover:text-cream-100">Termos de Uso</a>
-                        <a href="/login" className="transition-colors hover:text-blue-400">Area Restrita</a>
+                        {legalLinks.map((item) => (
+                            <Link
+                                key={item.label}
+                                href={item.href}
+                                className={item.accent ? "transition-colors hover:text-blue-400" : "transition-colors hover:text-cream-100"}
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
                     </div>
                 </div>
             </Container>
