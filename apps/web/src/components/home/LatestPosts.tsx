@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Container, Card, Badge } from "@resenha/ui";
+import { Container, Card, Badge, shouldBypassNextImageOptimization } from "@resenha/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { Clock } from "lucide-react";
@@ -42,6 +42,7 @@ export function LatestPosts({ posts }: { posts?: PostPreview[] }) {
                                             alt={post.title}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 33vw"
+                                            unoptimized={shouldBypassNextImageOptimization(post.coverImage)}
                                             className="object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
                                     ) : (

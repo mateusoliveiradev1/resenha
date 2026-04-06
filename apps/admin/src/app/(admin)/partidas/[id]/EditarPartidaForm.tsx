@@ -4,7 +4,7 @@ import * as React from "react";
 import { useForm, useFieldArray, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UpdateMatchSchema, type UpdateMatchInput, UpsertMatchStatsSchema, type UpsertMatchStatsInput } from "@resenha/validators";
-import { Button, FormField, Card, CardContent, Tabs } from "@resenha/ui";
+import { Button, FormField, Card, CardContent, Tabs, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { ArrowLeft, Save, Trash2, Plus, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -227,6 +227,7 @@ export function EditarPartidaForm({
                                                     alt="Escudo atual do adversario"
                                                     width={96}
                                                     height={96}
+                                                    unoptimized={shouldBypassNextImageOptimization(logoUrl)}
                                                     className="mx-auto h-24 w-24 rounded-full border border-navy-700 bg-navy-900 object-contain p-2"
                                                 />
                                                 <p className="text-sm font-medium text-cream-100">Clique para trocar o escudo</p>

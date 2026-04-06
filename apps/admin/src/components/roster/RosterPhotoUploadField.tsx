@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Button, cn } from "@resenha/ui";
+import { Button, cn, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { Loader2, Trash2, UploadCloud } from "lucide-react";
 import { uploadRosterPhoto, type RosterPhotoEntity } from "@/lib/rosterPhotoUpload";
 
@@ -37,7 +37,7 @@ export function RosterPhotoUploadField({
     const [uploadError, setUploadError] = React.useState<string | null>(null);
 
     const previewUrl = value?.trim() ? value : null;
-    const isUploadedPhoto = previewUrl?.startsWith("/uploads/") ?? false;
+    const shouldBypassOptimization = shouldBypassNextImageOptimization(previewUrl);
 
     const openFilePicker = () => inputRef.current?.click();
 
@@ -96,7 +96,7 @@ export function RosterPhotoUploadField({
                             src={previewUrl}
                             alt="Preview da foto"
                             fill
-                            unoptimized={isUploadedPhoto}
+                            unoptimized={shouldBypassOptimization}
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, 640px"
                         />

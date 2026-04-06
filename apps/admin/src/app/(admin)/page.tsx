@@ -1,7 +1,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Badge, Card } from "@resenha/ui";
+import { Badge, Card, shouldBypassNextImageOptimization } from "@resenha/ui";
 import {
     ArrowRight,
     CalendarClock,
@@ -200,6 +200,7 @@ export default async function AdminDashboardPage() {
                                                 alt={nextMatch.opponent}
                                                 fill
                                                 sizes="56px"
+                                                unoptimized={shouldBypassNextImageOptimization(nextMatch.opponentLogo)}
                                                 className="object-contain p-2"
                                             />
                                         ) : (
@@ -245,7 +246,7 @@ export default async function AdminDashboardPage() {
                                                         alt={player.nickname}
                                                         width={40}
                                                         height={40}
-                                                        unoptimized={player.photoUrl.startsWith("/uploads/")}
+                                                        unoptimized={shouldBypassNextImageOptimization(player.photoUrl)}
                                                         className="h-full w-full object-cover"
                                                     />
                                                 ) : (

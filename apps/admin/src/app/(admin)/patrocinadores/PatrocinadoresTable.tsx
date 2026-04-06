@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Button, DataTable, type Column, Badge } from "@resenha/ui";
+import { Button, DataTable, type Column, Badge, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { deleteSponsor } from "@/app/actions/sponsors";
 import { Edit2, Handshake, Loader2, Trash2 } from "lucide-react";
 import type { SponsorTier } from "@resenha/validators";
@@ -62,7 +62,7 @@ export function PatrocinadoresTable({ data }: { data: SponsorData[] }) {
                                 src={item.logoUrl}
                                 alt={item.name}
                                 fill
-                                unoptimized={item.logoUrl.startsWith("/uploads/")}
+                                unoptimized={shouldBypassNextImageOptimization(item.logoUrl)}
                                 className="object-contain p-2"
                                 sizes="48px"
                             />

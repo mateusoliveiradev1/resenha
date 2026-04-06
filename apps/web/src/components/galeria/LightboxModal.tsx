@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { shouldBypassNextImageOptimization } from "@resenha/ui";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -98,7 +99,7 @@ export function LightboxModal({ photos, initialIndex, isOpen, onClose }: Lightbo
                                         alt={currentPhoto.caption || "Galeria"}
                                         fill
                                         sizes="100vw"
-                                        unoptimized={currentPhoto.url.startsWith("/uploads/")}
+                                        unoptimized={shouldBypassNextImageOptimization(currentPhoto.url)}
                                         className="object-contain"
                                     />
                                 ) : (

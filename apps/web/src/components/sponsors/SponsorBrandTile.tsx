@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { shouldBypassNextImageOptimization } from "@resenha/ui";
 import { getSponsorAccentStyle, getSponsorFallbackStyle, getSponsorInitials, getSponsorWordmark } from "@/components/sponsors/sponsorBrand";
 
 type SponsorBrandTileVariant = "compact" | "feature";
@@ -27,7 +28,7 @@ export function SponsorBrandTile({ name, logoUrl, variant = "compact" }: Sponsor
                     src={logoUrl}
                     alt={name}
                     fill
-                    unoptimized={logoUrl.startsWith("/uploads/")}
+                    unoptimized={shouldBypassNextImageOptimization(logoUrl)}
                     className={isCompact ? "object-contain p-2" : "object-contain p-4"}
                     sizes={isCompact ? "112px" : "(max-width: 768px) 100vw, 640px"}
                 />

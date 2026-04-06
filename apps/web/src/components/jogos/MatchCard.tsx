@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Card, Badge } from "@resenha/ui";
+import { Card, Badge, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { Clock, MapPin, Radio } from "lucide-react";
 
 export interface Match {
@@ -104,6 +104,7 @@ export function MatchCard({ match }: { match: Match }) {
                                     alt={match.opponent}
                                     fill
                                     sizes="(max-width: 768px) 64px, 80px"
+                                    unoptimized={shouldBypassNextImageOptimization(match.opponentLogo)}
                                     className="object-contain p-2"
                                 />
                             ) : (

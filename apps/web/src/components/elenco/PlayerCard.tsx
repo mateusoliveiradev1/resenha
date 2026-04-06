@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Card, Badge } from "@resenha/ui";
+import { Card, Badge, shouldBypassNextImageOptimization } from "@resenha/ui";
 import type { BadgeProps } from "@resenha/ui";
 import { Activity } from "lucide-react";
 
@@ -26,7 +26,7 @@ export interface Player {
 }
 
 export function PlayerCard({ player }: { player: Player }) {
-    const isUploadedPhoto = player.photoUrl?.startsWith("/uploads/") ?? false;
+    const shouldBypassOptimization = shouldBypassNextImageOptimization(player.photoUrl);
 
     const getPositionColor = (pos: Player["position"]): NonNullable<BadgeProps["variant"]> => {
         switch (pos) {
@@ -47,7 +47,7 @@ export function PlayerCard({ player }: { player: Player }) {
                         src={player.photoUrl}
                         alt={player.name}
                         fill
-                        unoptimized={isUploadedPhoto}
+                        unoptimized={shouldBypassOptimization}
                         sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                         className="object-cover object-top transition-transform duration-700 group-hover:scale-110 opacity-90 group-hover:opacity-100"
                     />

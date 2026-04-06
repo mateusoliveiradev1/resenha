@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Container } from "@resenha/ui";
+import { Container, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { LightboxModal, type Photo } from "@/components/galeria/LightboxModal";
 
 export function GalleryClient({ photos }: { photos: Photo[] }) {
@@ -44,7 +44,7 @@ export function GalleryClient({ photos }: { photos: Photo[] }) {
                                         alt={photo.caption || "Galeria Resenha RFC"}
                                         fill
                                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                                        unoptimized={photo.url.startsWith("/uploads/")}
+                                        unoptimized={shouldBypassNextImageOptimization(photo.url)}
                                         className="object-cover transition-transform duration-700 group-hover:scale-105"
                                     />
                                 </div>

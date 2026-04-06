@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Card, Badge } from "@resenha/ui";
+import { Card, Badge, shouldBypassNextImageOptimization } from "@resenha/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, Calendar, ArrowRight } from "lucide-react";
@@ -50,7 +50,7 @@ export function PostCard({ post }: { post: Post }) {
                             alt={post.title}
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                            unoptimized={post.coverImage.startsWith("/uploads/")}
+                            unoptimized={shouldBypassNextImageOptimization(post.coverImage)}
                             className="object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                     ) : (

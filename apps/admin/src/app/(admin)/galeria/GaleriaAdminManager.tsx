@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Button, Card, CardContent } from "@resenha/ui";
+import { Button, Card, CardContent, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { ImagePlus, Loader2, Trash2, UploadCloud, X } from "lucide-react";
 import { createGalleryPhotos, deletePhoto } from "@/actions/gallery";
 import { uploadRosterPhoto } from "@/lib/rosterPhotoUpload";
@@ -312,7 +312,7 @@ export function GaleriaAdminManager({ photos }: { photos: AdminGalleryPhoto[] })
                                         alt={photo.caption}
                                         fill
                                         sizes="(max-width: 768px) 50vw, 25vw"
-                                        unoptimized={photo.url.startsWith("/uploads/")}
+                                        unoptimized={shouldBypassNextImageOptimization(photo.url)}
                                         className="object-cover"
                                     />
                                 </div>

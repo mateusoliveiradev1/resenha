@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { put } from "@vercel/blob";
 
 const MAX_UPLOAD_SIZE_BYTES = 3 * 1024 * 1024;
-const UPLOADS_ROOT = path.resolve(/* turbopackIgnore: true */ process.cwd(), "../../storage/uploads");
 
 const uploadTargets = {
     opponents: { directory: "opponents", prefix: "opponent" },
@@ -59,6 +59,42 @@ function detectImageType(buffer: Buffer) {
     return null;
 }
 
+function getUploadsRoot() {
+    return path.resolve(/* turbopackIgnore: true */ process.cwd(), "../../storage/uploads");
+}
+
+function isBlobStorageConfigured() {
+    return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+function isVercelRuntime() {
+    return process.env.VERCEL === "1";
+}
+
+async function saveImageToLocalDisk(target: UploadImageTarget, fileName: string, buffer: Buffer) {
+    const targetConfig = uploadTargets[target];
+    const targetDirectory = path.join(getUploadsRoot(), targetConfig.directory);
+
+    await mkdir(targetDirectory, { recursive: true });
+
+    const targetPath = path.join(targetDirectory, fileName);
+    await writeFile(targetPath, buffer);
+
+    return `/uploads/${targetConfig.directory}/${fileName}`;
+}
+
+async function saveImageToBlob(target: UploadImageTarget, fileName: string, buffer: Buffer, contentType: string) {
+    const targetConfig = uploadTargets[target];
+    const blob = await put(`${targetConfig.directory}/${fileName}`, buffer, {
+        access: "public",
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        contentType
+    });
+
+    return blob.url;
+}
+
 export async function saveUploadedImage(file: File, target: UploadImageTarget) {
     if (!(file instanceof File)) {
         throw new Error("Nenhum arquivo foi enviado.");
@@ -80,18 +116,18 @@ export async function saveUploadedImage(file: File, target: UploadImageTarget) {
     }
 
     const targetConfig = uploadTargets[target];
-    const targetDirectory = path.join(UPLOADS_ROOT, targetConfig.directory);
-
-    await mkdir(targetDirectory, { recursive: true });
-
     const contentHash = createHash("sha256").update(buffer).digest("hex").slice(0, 24);
     const fileName = `${targetConfig.prefix}-${contentHash}.${detectedType.extension}`;
-    const targetPath = path.join(targetDirectory, fileName);
-
-    await writeFile(targetPath, buffer);
+    const url = isBlobStorageConfigured()
+        ? await saveImageToBlob(target, fileName, buffer, detectedType.contentType)
+        : isVercelRuntime()
+            ? (() => {
+                throw new Error("BLOB_READ_WRITE_TOKEN nao configurado. Conecte um Blob Store ao projeto antes de enviar imagens em producao.");
+            })()
+            : await saveImageToLocalDisk(target, fileName, buffer);
 
     return {
-        url: `/uploads/${targetConfig.directory}/${fileName}`,
+        url,
         contentType: detectedType.contentType
     };
 }

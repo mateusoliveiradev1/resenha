@@ -14,6 +14,7 @@
     "@resenha/db": "workspace:*",
     "@resenha/ui": "workspace:*",
     "@resenha/validators": "workspace:*",
+    "@vercel/blob": "^2.3.3",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.39.0",
     "framer-motion": "^11.18.2",

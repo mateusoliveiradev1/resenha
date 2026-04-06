@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Container, Card, Badge } from "@resenha/ui";
+import { Container, Card, Badge, shouldBypassNextImageOptimization } from "@resenha/ui";
 import Image from "next/image";
 import { ChevronRight, Calendar } from "lucide-react";
 import Link from "next/link";
@@ -98,6 +98,7 @@ export function LatestResults({ results }: { results?: MatchResult[] }) {
                                                     alt={match.opponent}
                                                     fill
                                                     sizes="(max-width: 640px) 56px, 64px"
+                                                    unoptimized={shouldBypassNextImageOptimization(match.opponentLogo)}
                                                     className="object-contain p-2"
                                                 />
                                             ) : (

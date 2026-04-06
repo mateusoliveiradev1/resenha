@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { cn } from "@resenha/ui";
+import { cn, shouldBypassNextImageOptimization } from "@resenha/ui";
 
 export interface RankItem {
     id: string;
@@ -33,7 +33,7 @@ export function RankingList({ data, valueLabel }: RankingListProps) {
             {data.map((item, index) => {
                 const isFirst = index === 0;
                 const widthPercent = Math.max((item.value / maxValue) * 100, 2);
-                const isUploadedPhoto = item.playerPhotoUrl?.startsWith("/uploads/") ?? false;
+                const shouldBypassOptimization = shouldBypassNextImageOptimization(item.playerPhotoUrl);
 
                 return (
                     <div
@@ -65,7 +65,7 @@ export function RankingList({ data, valueLabel }: RankingListProps) {
                                     src={item.playerPhotoUrl}
                                     alt={item.playerName}
                                     fill
-                                    unoptimized={isUploadedPhoto}
+                                    unoptimized={shouldBypassOptimization}
                                     sizes="48px"
                                     className="object-cover object-top"
                                 />

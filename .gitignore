@@ -72,6 +72,7 @@ storage/uploads/
 # Deployment and local tooling
 .vercel/
 **/.vercel/
+.vercel-prune/
 .idea/
 .vscode/
 .DS_Store

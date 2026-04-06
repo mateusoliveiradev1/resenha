@@ -4,7 +4,7 @@ import * as React from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateMatchSchema, type CreateMatchInput } from "@resenha/validators";
-import { Button, FormField, Card, CardContent } from "@resenha/ui";
+import { Button, FormField, Card, CardContent, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { ArrowLeft, Save, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -153,6 +153,7 @@ export default function NovaPartidaPage() {
                                             alt="Preview do escudo do adversario"
                                             width={96}
                                             height={96}
+                                            unoptimized={shouldBypassNextImageOptimization(logoPreviewUrl)}
                                             className="mx-auto h-24 w-24 rounded-full border border-navy-700 bg-navy-900 object-contain p-2"
                                         />
                                         <p className="text-sm font-medium text-cream-100">Escudo pronto para uso</p>

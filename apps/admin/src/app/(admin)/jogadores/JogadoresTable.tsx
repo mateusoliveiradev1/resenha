@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Button, DataTable, type Column, Badge } from "@resenha/ui";
+import { Button, DataTable, type Column, Badge, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { deletePlayer } from "@/app/actions/players";
 import { Edit2, Loader2, ShieldCheck, Trash2 } from "lucide-react";
 
@@ -56,7 +56,7 @@ export function JogadoresTable({ data }: { data: PlayerData[] }) {
                                 alt={item.nickname}
                                 width={40}
                                 height={40}
-                                unoptimized={item.photoUrl.startsWith("/uploads/")}
+                                unoptimized={shouldBypassNextImageOptimization(item.photoUrl)}
                                 className="h-full w-full object-cover"
                             />
                         ) : (

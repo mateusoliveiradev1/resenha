@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { db } from "@resenha/db";
 import { posts } from "@resenha/db/schema";
-import { Badge, Button, Container } from "@resenha/ui";
+import { Badge, Button, Container, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +55,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
                             alt={post.title}
                             fill
                             sizes="100vw"
-                            unoptimized={post.coverImage.startsWith("/uploads/")}
+                            unoptimized={shouldBypassNextImageOptimization(post.coverImage)}
                             className="object-cover"
                         />
                     </div>

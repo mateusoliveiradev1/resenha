@@ -1,4 +1,5 @@
 export * from "./utils/cn";
+export * from "./utils/images";
 export * from "./primitives/Button";
 export * from "./primitives/Input";
 export * from "./primitives/Card";

@@ -5,6 +5,7 @@
         "build": "turbo run build",
         "dev": "turbo run dev",
         "lint": "turbo run lint",
+        "migrate:legacy-uploads": "node scripts/migrate-legacy-uploads-to-blob.js",
         "test": "turbo run test"
     },
     "devDependencies": {

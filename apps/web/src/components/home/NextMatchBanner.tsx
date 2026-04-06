@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Container } from "@resenha/ui";
+import { Container, shouldBypassNextImageOptimization } from "@resenha/ui";
 import Image from "next/image";
 import { Calendar, MapPin, Radio } from "lucide-react";
 
@@ -135,6 +135,7 @@ export function NextMatchBanner({ match }: { match?: NextMatch | null }) {
                                                 alt={match.opponent}
                                                 fill
                                                 sizes="(max-width: 640px) 80px, (max-width: 768px) 96px, 128px"
+                                                unoptimized={shouldBypassNextImageOptimization(match.opponentLogo)}
                                                 className="object-contain p-2"
                                             />
                                         ) : (
