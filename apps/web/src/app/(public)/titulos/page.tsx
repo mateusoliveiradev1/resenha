@@ -1,10 +1,20 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Button, Card, CardContent, Container } from "@resenha/ui";
 import { db } from "@resenha/db";
 import { matches } from "@resenha/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = createPageMetadata({
+    title: "Títulos e Conquistas",
+    description:
+        "Acompanhe a página de títulos e conquistas do Resenha RFC, com a galeria institucional preparada para registrar troféus e campanhas marcantes do clube.",
+    path: "/titulos",
+    keywords: ["títulos", "conquistas", "campanhas", "troféus", "história do clube"]
+});
 
 interface SeasonSummary {
     season: string;

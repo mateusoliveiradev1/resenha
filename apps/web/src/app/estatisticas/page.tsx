@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Button, Card, CardContent, Container } from "@resenha/ui";
 import { db } from "@resenha/db";
@@ -5,8 +6,17 @@ import { matchStats, matches, players } from "@resenha/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import { type RankItem } from "@/components/estatisticas/RankingList";
 import { EstatisticasView } from "./EstatisticasView";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = createPageMetadata({
+    title: "Estatísticas",
+    description:
+        "Veja as estatísticas do Resenha RFC com campanha, gols, assistências, rankings do elenco e leitura de desempenho da temporada.",
+    path: "/estatisticas",
+    keywords: ["estatísticas", "gols", "assistências", "campanha", "desempenho", "ranking"]
+});
 
 export default async function EstatisticasPage() {
     const finishedMatches = await db.query.matches.findMany({

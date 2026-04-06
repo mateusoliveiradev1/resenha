@@ -1,5 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Button, Card, CardContent, Container } from "@resenha/ui";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+    title: "Nossa História",
+    description:
+        "Conheça a história do Resenha RFC, um clube de futebol amador presente no campo e na quadra, com destaque para o 3º lugar no Pé no Chão 2025.",
+    path: "/historia",
+    keywords: ["história", "campo", "quadra", "Pé no Chão", "3º lugar", "futebol amador"]
+});
 
 const identityPillars = [
     {

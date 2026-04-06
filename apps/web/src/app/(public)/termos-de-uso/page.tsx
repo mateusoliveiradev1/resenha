@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal/LegalDocument";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+    title: "Termos de Uso",
+    description:
+        "Consulte os termos de uso do site do Resenha RFC, incluindo regras de navegação, conteúdo institucional e acesso a áreas protegidas.",
+    path: "/termos-de-uso",
+    keywords: ["termos de uso", "regras do site", "conteúdo institucional", "área restrita"]
+});
 
 const sections = [
     {

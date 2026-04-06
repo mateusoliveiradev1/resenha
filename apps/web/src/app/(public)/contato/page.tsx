@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import { Container } from "@resenha/ui";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+    title: "Contato",
+    description:
+        "Entre em contato com o Resenha RFC para parcerias, amistosos, patrocínios e assuntos institucionais do clube.",
+    path: "/contato",
+    keywords: ["contato", "parcerias", "amistosos", "patrocínio", "fale conosco"]
+});
 
 export default function ContatoPage() {
     return (

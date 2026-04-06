@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Card, Badge, shouldBypassNextImageOptimization } from "@resenha/ui";
+import { Card, Badge, shouldBypassNextImageOptimization, type BadgeProps } from "@resenha/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, Calendar, ArrowRight } from "lucide-react";
@@ -27,7 +27,7 @@ export function PostCard({ post }: { post: Post }) {
         }
     };
 
-    const getCategoryColor = (category: string) => {
+    const getCategoryColor = (category: Post["category"]): NonNullable<BadgeProps["variant"]> => {
         switch (category) {
             case "NOTICIA": return "default";
             case "RESULTADO": return "success";
@@ -60,7 +60,7 @@ export function PostCard({ post }: { post: Post }) {
                     )}
 
                     <div className="absolute top-4 left-4 z-20">
-                        <Badge variant={getCategoryColor(post.category) as any} className="shadow-lg backdrop-blur-md bg-opacity-90 px-3 py-1 text-[10px] tracking-widest uppercase font-bold ring-1 ring-white/10">
+                        <Badge variant={getCategoryColor(post.category)} className="shadow-lg backdrop-blur-md bg-opacity-90 px-3 py-1 text-[10px] tracking-widest uppercase font-bold ring-1 ring-white/10">
                             {getCategoryLabel(post.category)}
                         </Badge>
                     </div>

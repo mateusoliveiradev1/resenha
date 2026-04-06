@@ -18,24 +18,23 @@ export function LatestPosts({ posts }: { posts?: PostPreview[] }) {
     if (!posts || !posts.length) return null;
 
     return (
-        <section className="py-16 bg-navy-950/50">
+        <section className="bg-navy-950/50 py-16">
             <Container>
-                <div className="flex items-end justify-between border-b border-navy-800 pb-4 mb-8">
+                <div className="mb-8 flex items-end justify-between border-b border-navy-800 pb-4">
                     <div>
                         <h2 className="text-3xl font-display font-bold text-cream-100">Últimas Notícias</h2>
-                        <p className="text-sm text-cream-300 mt-1">Fique por dentro das novidades do Resenha.</p>
+                        <p className="mt-1 text-sm text-cream-300">Fique por dentro das novidades do Resenha.</p>
                     </div>
-                    <a href="/blog" className="text-sm font-semibold text-blue-400 hover:text-blue-300 hidden sm:block transition-colors">
+                    <Link href="/blog" className="hidden text-sm font-semibold text-blue-400 transition-colors hover:text-blue-300 sm:block">
                         Acessar Blog →
-                    </a>
+                    </Link>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     {posts.map((post) => (
                         <Link key={post.slug} href={`/blog/${post.slug}`}>
-                            <Card className="flex flex-col sm:flex-row overflow-hidden group hover:border-navy-700 transition-all h-full bg-navy-900/60 hover:bg-navy-900 cursor-pointer">
-                                {/* Image Placeholder */}
-                                <div className="sm:w-1/3 h-48 sm:h-auto bg-navy-800 relative shrink-0">
+                            <Card className="flex h-full cursor-pointer flex-col overflow-hidden bg-navy-900/60 transition-all hover:border-navy-700 hover:bg-navy-900 sm:flex-row">
+                                <div className="relative h-48 shrink-0 bg-navy-800 sm:h-auto sm:w-1/3">
                                     {post.coverImage ? (
                                         <Image
                                             src={post.coverImage}
@@ -43,33 +42,35 @@ export function LatestPosts({ posts }: { posts?: PostPreview[] }) {
                                             fill
                                             sizes="(max-width: 768px) 100vw, 33vw"
                                             unoptimized={shouldBypassNextImageOptimization(post.coverImage)}
-                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                     ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center p-4 bg-gradient-to-br from-navy-800 to-navy-900 group-hover:scale-105 transition-transform duration-500">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-navy-800 to-navy-900 p-4 transition-transform duration-500 group-hover:scale-105">
                                             <Image src="/logo2.png" alt="Resenha" width={80} height={80} className="object-contain opacity-30" />
                                         </div>
                                     )}
-                                    <Badge variant={post.category === "RESULTADO" ? "success" : "accent"} className="absolute top-4 left-4 z-10">
+                                    <Badge variant={post.category === "RESULTADO" ? "success" : "accent"} className="absolute left-4 top-4 z-10">
                                         {post.category}
                                     </Badge>
                                 </div>
 
-                                <div className="p-6 flex flex-col flex-1">
-                                    <h3 className="font-display font-bold text-lg text-cream-100 group-hover:text-blue-400 transition-colors line-clamp-2">
+                                <div className="flex flex-1 flex-col p-6">
+                                    <h3 className="line-clamp-2 font-display text-lg font-bold text-cream-100 transition-colors group-hover:text-blue-400">
                                         {post.title}
                                     </h3>
-                                    <p className="mt-2 text-sm text-cream-300 line-clamp-2 mb-4 flex-1">
-                                        {post.excerpt}
-                                    </p>
+                                    <p className="mb-4 mt-2 line-clamp-2 flex-1 text-sm text-cream-300">{post.excerpt}</p>
 
-                                    <div className="flex items-center text-xs text-navy-700 font-medium pt-4 border-t border-navy-800/50 mt-auto">
+                                    <div className="mt-auto flex items-center border-t border-navy-800/50 pt-4 text-xs font-medium text-navy-700">
                                         <span className="text-cream-300">
-                                            {post.publishedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+                                            {post.publishedAt.toLocaleDateString("pt-BR", {
+                                                day: "2-digit",
+                                                month: "short",
+                                                year: "numeric"
+                                            })}
                                         </span>
                                         <span className="mx-2">•</span>
                                         <span className="flex items-center text-cream-300">
-                                            <Clock className="w-3 h-3 mr-1" />
+                                            <Clock className="mr-1 h-3 w-3" />
                                             {post.readingTimeMin} min
                                         </span>
                                     </div>
@@ -80,9 +81,12 @@ export function LatestPosts({ posts }: { posts?: PostPreview[] }) {
                 </div>
 
                 <div className="mt-8 text-center sm:hidden">
-                    <a href="/blog" className="text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors w-full p-4 block border border-navy-800 rounded-lg">
+                    <Link
+                        href="/blog"
+                        className="block w-full rounded-lg border border-navy-800 p-4 text-sm font-semibold text-blue-400 transition-colors hover:text-blue-300"
+                    >
                         Ver Todas Notícias
-                    </a>
+                    </Link>
                 </div>
             </Container>
         </section>

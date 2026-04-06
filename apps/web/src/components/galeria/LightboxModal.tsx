@@ -26,6 +26,16 @@ export function LightboxModal({ photos, initialIndex, isOpen, onClose }: Lightbo
         setCurrentIndex(initialIndex);
     }, [initialIndex]);
 
+    const handleNext = React.useCallback(() => {
+        if (photos.length === 0) return;
+        setCurrentIndex((prev) => (prev + 1) % photos.length);
+    }, [photos.length]);
+
+    const handlePrev = React.useCallback(() => {
+        if (photos.length === 0) return;
+        setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
+    }, [photos.length]);
+
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!isOpen) return;
@@ -36,15 +46,7 @@ export function LightboxModal({ photos, initialIndex, isOpen, onClose }: Lightbo
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isOpen, currentIndex, photos.length]);
-
-    const handleNext = () => {
-        setCurrentIndex((prev) => (prev + 1) % photos.length);
-    };
-
-    const handlePrev = () => {
-        setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
-    };
+    }, [handleNext, handlePrev, isOpen, onClose]);
 
     if (!isOpen || photos.length === 0) return null;
 

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { Card, Badge, shouldBypassNextImageOptimization } from "@resenha/ui";
-import { Clock, MapPin, Radio } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 
 export interface Match {
     id: string;

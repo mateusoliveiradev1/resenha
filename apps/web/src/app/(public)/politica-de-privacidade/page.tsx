@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal/LegalDocument";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+    title: "Política de Privacidade",
+    description:
+        "Leia a política de privacidade do Resenha RFC e entenda como o site trata dados enviados em contatos, áreas administrativas e fluxos institucionais.",
+    path: "/politica-de-privacidade",
+    keywords: ["política de privacidade", "dados pessoais", "privacidade", "LGPD"]
+});
 
 const sections = [
     {

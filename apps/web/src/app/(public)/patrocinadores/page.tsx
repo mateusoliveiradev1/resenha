@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Button, Card, Container } from "@resenha/ui";
 import { db } from "@resenha/db";
@@ -7,6 +8,7 @@ import type { SponsorTier } from "@resenha/validators";
 import { ArrowRight, Handshake, Star } from "lucide-react";
 import { SponsorBrandTile } from "@/components/sponsors/SponsorBrandTile";
 import { getSponsorPlacementLabel, getSponsorSupportCopy } from "@/components/sponsors/sponsorBrand";
+import { createPageMetadata } from "@/lib/seo";
 
 const tierOrder: SponsorTier[] = ["MASTER", "OURO", "PRATA", "APOIO"];
 const tierLabels: Record<SponsorTier, string> = {
@@ -23,6 +25,14 @@ const tierDescriptions: Record<SponsorTier, string> = {
 };
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = createPageMetadata({
+    title: "Patrocinadores",
+    description:
+        "Veja os patrocinadores e parceiros oficiais do Resenha RFC e descubra como apoiar o clube com visibilidade institucional e presença de marca.",
+    path: "/patrocinadores",
+    keywords: ["patrocinadores", "parceiros oficiais", "apoio", "marca", "visibilidade"]
+});
 
 export default async function PatrocinadoresPage() {
     const sponsorList = await db.query.sponsors.findMany({

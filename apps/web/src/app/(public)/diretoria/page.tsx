@@ -1,9 +1,19 @@
+import type { Metadata } from "next";
 import { Badge, Card, CardContent, Container } from "@resenha/ui";
 import { db } from "@resenha/db";
 import { staff } from "@resenha/db/schema";
 import { asc } from "drizzle-orm";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = createPageMetadata({
+    title: "Diretoria e Staff",
+    description:
+        "Conheça a diretoria e o staff do Resenha RFC, com a estrutura que sustenta a liderança, a operação e a identidade do clube.",
+    path: "/diretoria",
+    keywords: ["diretoria", "staff", "liderança", "gestão esportiva", "estrutura do clube"]
+});
 
 const getInitials = (name: string) =>
     name

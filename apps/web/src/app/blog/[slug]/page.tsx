@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,6 +8,7 @@ import { db } from "@resenha/db";
 import { posts } from "@resenha/db/schema";
 import { Badge, Button, Container, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
+import { DEFAULT_OG_IMAGE, SITE_NAME, createPageMetadata, getAbsoluteUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -24,15 +26,48 @@ const categoryLabelMap = {
     BASTIDORES: "Bastidores"
 } as const;
 
-export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
-
-    const post = await db.query.posts.findFirst({
+async function getPublishedPost(slug: string) {
+    return db.query.posts.findFirst({
         where: and(eq(posts.slug, slug), eq(posts.isPublished, true)),
         with: {
             match: true
         }
     });
+}
+
+export async function generateMetadata({
+    params
+}: {
+    params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+    const { slug } = await params;
+    const post = await getPublishedPost(slug);
+
+    if (!post) {
+        return createPageMetadata({
+            title: "Post não encontrado",
+            description: "O conteúdo solicitado não foi encontrado no blog do Resenha RFC.",
+            path: `/blog/${slug}`,
+            noIndex: true
+        });
+    }
+
+    return createPageMetadata({
+        title: post.title,
+        description: post.excerpt,
+        path: `/blog/${post.slug}`,
+        keywords: [categoryLabelMap[post.category], post.author, "blog do Resenha RFC"],
+        image: post.coverImage || DEFAULT_OG_IMAGE,
+        type: "article",
+        publishedTime: (post.publishedAt ?? post.createdAt).toISOString(),
+        modifiedTime: (post.updatedAt ?? post.publishedAt ?? post.createdAt).toISOString()
+    });
+}
+
+export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
+
+    const post = await getPublishedPost(slug);
 
     if (!post) {
         notFound();
@@ -40,9 +75,35 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
 
     const publishDate = post.publishedAt ?? post.createdAt;
     const hasHtmlContent = /<\/?[a-z][\s\S]*>/i.test(post.content);
+    const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: post.title,
+        description: post.excerpt,
+        image: getAbsoluteUrl(post.coverImage || DEFAULT_OG_IMAGE),
+        datePublished: publishDate.toISOString(),
+        dateModified: (post.updatedAt ?? publishDate).toISOString(),
+        author: {
+            "@type": "Person",
+            name: post.author
+        },
+        publisher: {
+            "@type": "Organization",
+            name: SITE_NAME,
+            logo: {
+                "@type": "ImageObject",
+                url: getAbsoluteUrl("/logo2.png")
+            }
+        },
+        mainEntityOfPage: getAbsoluteUrl(`/blog/${post.slug}`)
+    };
 
     return (
         <article className="min-h-screen pb-20">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+            />
             <div className="relative overflow-hidden border-b border-navy-800 bg-navy-950 pb-20 pt-32 lg:pb-28 lg:pt-40">
                 <div className="absolute inset-0 z-0 opacity-20 bg-gradient-to-br from-blue-900/30 to-navy-950">
                     <div className="absolute inset-0 backdrop-blur-3xl" />

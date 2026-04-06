@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import * as React from "react";
 import { Container } from "@resenha/ui";
 import { db } from "@resenha/db";
@@ -5,8 +6,17 @@ import { matchStats, players as playersTable } from "@resenha/db/schema";
 import { asc, eq, sql } from "drizzle-orm";
 import { type Player } from "@/components/elenco/PlayerCard";
 import { ElencoView } from "./ElencoView";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = createPageMetadata({
+    title: "Elenco",
+    description:
+        "Conheça o elenco do Resenha RFC, com jogadores, posições e informações do grupo que representa o clube no campo e na quadra.",
+    path: "/elenco",
+    keywords: ["elenco", "jogadores", "time", "futebol amador", "campo", "quadra"]
+});
 
 export default async function ElencoPage() {
     const [dbPlayers, aggregatedStats] = await Promise.all([
