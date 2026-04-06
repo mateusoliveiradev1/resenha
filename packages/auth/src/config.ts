@@ -6,11 +6,7 @@ type AuthToken = {
     role?: "ADMIN" | "EDITOR";
 };
 
-const authSecret = process.env.AUTH_SECRET;
-
-if (!authSecret) {
-    throw new Error("AUTH_SECRET environment variable is required.");
-}
+const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
 
 export const authConfig = {
     secret: authSecret,
