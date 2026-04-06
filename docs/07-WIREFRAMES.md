@@ -1,0 +1,149 @@
+# 07 — Wireframes UI
+
+## Landing (`/`)
+
+```
+┌──────────────────────────────────────────┐
+│ HEADER (glass, fixed, blur)              │
+├──────────────────────────────────────────┤
+│                                          │
+│         🛡️ ESCUDO (grande, animado)      │
+│         RESENHA RFC                      │
+│      "Futebol é na resenha"              │
+│      [Ver Elenco]  [Próximo Jogo]        │
+│                                          │
+├──────────────────────────────────────────┤
+│ ⏱️ PRÓXIMO JOGO (card glass)             │
+│ ┌──────────────────────────────────┐     │
+│ │ 🛡️ Resenha   vs   🏴 Adversário │     │
+│ │ (fixo)            (upload admin) │     │
+│ │ 12/04 • 20h • Quadra Central     │     │
+│ │      COUNTDOWN: 3d 14h 22m       │     │
+│ └──────────────────────────────────┘     │
+├──────────────────────────────────────────┤
+│ 📊 ÚLTIMOS RESULTADOS (3 cards)          │
+│ ┌────────┐ ┌────────┐ ┌────────┐        │
+│ │🛡️vs🏴  │ │🛡️vs🏴  │ │🛡️vs🏴  │        │
+│ │ 3 x 1  │ │ 2 x 2  │ │ 0 x 1  │        │
+│ │ ✅ VIT │ │ 🟡 EMP │ │ 🔴 DER │        │
+│ └────────┘ └────────┘ └────────┘        │
+├──────────────────────────────────────────┤
+│ 📰 ÚLTIMAS NOTÍCIAS (grid 2 cols)       │
+│ ┌───────────────┐ ┌───────────────┐      │
+│ │ 📸 cover      │ │ 📸 cover      │      │
+│ │ Título        │ │ Título        │      │
+│ │ 2 dias • 3min │ │ 5 dias • 5min │      │
+│ └───────────────┘ └───────────────┘      │
+├──────────────────────────────────────────┤
+│ FOOTER                                   │
+└──────────────────────────────────────────┘
+```
+
+## Elenco (`/elenco`)
+
+```
+Tabs: [ GOL | DEF | MEI | ATA | TODOS ]
+
+Grid 3–4 colunas:
+┌──────────┐ ┌──────────┐ ┌──────────┐
+│ 📸 FOTO  │ │ 📸 FOTO  │ │ 📸 FOTO  │
+│ (figurinha)│ │          │ │          │
+│ #10      │ │ #7       │ │ #1       │
+│ FULANO   │ │ CICLANO  │ │ GOLEIRO  │
+│ [MEI]    │ │ [ATA]    │ │ [GOL]    │
+└──────────┘ └──────────┘ └──────────┘
+
+Hover overlay (escurece foto):
+  ⚽ 12 gols │ 🅰️ 8 assists │ 🟨 3
+  👟 25 jogos │ 📅 24 anos
+  Pé direito │ 175cm
+```
+
+## Jogos (`/jogos`)
+
+```
+Toggle: [ FUTSAL | CAMPO | TODOS ]
+
+MatchCard:
+┌──────────────────────────────────────────┐
+│ 🛡️ Resenha     3 x 1     🏴 Adversário  │
+│ (logo fixo)   (grande)   (logo upload)   │
+│                                          │
+│ 📅 12/04 • 📍 Quadra X • [FUTSAL] [✅V] │
+└──────────────────────────────────────────┘
+
+Jogo agendado:
+┌──────────────────────────────────────────┐
+│ 🛡️ Resenha     vs     🏴 Adversário      │
+│                                          │
+│ 📅 20/04 • 📍 Campo Y • [CAMPO] [⏳AGE] │
+└──────────────────────────────────────────┘
+```
+
+## Blog (`/blog`)
+
+```
+Filtro: [ NOTÍCIA | RESULTADO | CRÔNICA | BASTIDORES | TODOS ]
+
+Grid masonry:
+┌─────────────────┐ ┌──────────┐
+│ 📸 cover grande │ │ 📸 cover │
+│ [RESULTADO]     │ │ [CRÔNICA]│
+│ Título do post  │ │ Título   │
+│ Excerpt auto... │ │ Excerpt..│
+│ 📅 2d • ⏱️ 3min │ │ 📅 5d    │
+└─────────────────┘ └──────────┘
+```
+
+## Galeria (`/galeria`)
+
+```
+Filtro: [ Partida X | Partida Y | TODAS ]
+
+Grid masonry de fotos. Click → lightbox fullscreen com setas.
+```
+
+## Estatísticas (`/estatisticas`)
+
+```
+Tabs: [ ARTILHARIA | ASSISTÊNCIAS | CARTÕES ]
+
+🥇 Fulano ████████████████ 12 gols  (borda gold)
+🥈 Ciclano ██████████████  10 gols
+🥉 Beltrano ████████████   8 gols
+4. Jogador  ██████████      6 gols
+```
+
+## Admin — Dashboard
+
+```
+┌──────────┬───────────────────────────────┐
+│ SIDEBAR  │  DASHBOARD                    │
+│          │                               │
+│ 🏠 Dash  │  ┌─────┐┌─────┐┌─────┐┌─────┐│
+│ 👥 Jog.  │  │ 12  ││  5  ││  3  ││Prox ││
+│ ⚽ Part. │  │Jogad││Jogos││Posts││Jogo ││
+│ 📰 Posts │  └─────┘└─────┘└─────┘└─────┘│
+│ 📸 Gal.  │                               │
+│ ⚙️ Config│  📊 Último resultado          │
+│          │  📋 Atividade recente          │
+└──────────┴───────────────────────────────┘
+```
+
+## Admin — CRUD (padrão para todos)
+
+```
+┌──────────┬───────────────────────────────┐
+│ SIDEBAR  │  JOGADORES                    │
+│          │  [+ Novo Jogador]             │
+│          │                               │
+│          │  ┌─────────────────────────┐   │
+│          │  │ DataTable               │   │
+│          │  │ Nome | Pos | # | Ações  │   │
+│          │  │ ─────────────────────── │   │
+│          │  │ Fulano | MEI | 10 | ✏🗑 │   │
+│          │  │ Ciclano| ATA | 7  | ✏🗑 │   │
+│          │  │                  Pag 1/3│   │
+│          │  └─────────────────────────┘   │
+└──────────┴───────────────────────────────┘
+```

@@ -1,0 +1,192 @@
+@import "tailwindcss";
+@source "../../../packages/ui/src";
+
+@theme {
+  --color-navy-950: #060E1A;
+  --color-navy-900: #0A1628;
+  --color-navy-800: #0F1F38;
+  --color-navy-700: #162D4D;
+  --color-blue-600: #1E4D8C;
+  --color-blue-500: #2563EB;
+  --color-blue-400: #3B82F6;
+  --color-cream-100: #F5F0E1;
+  --color-cream-300: #D4C9AD;
+  --color-gold-400: #D4A843;
+  --font-sans: var(--font-inter), sans-serif;
+  --font-display: var(--font-outfit), sans-serif;
+}
+
+@layer base {
+  :root {
+    --bg-primary: #060E1A;
+    --bg-card: #0A1628;
+    --text-primary: #F5F0E1;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-navy-900/70 backdrop-blur-md border border-cream-100/5;
+  }
+
+  .glow {
+    box-shadow: 0 0 32px rgba(30, 77, 140, 0.3);
+  }
+
+  .gold-gradient {
+    @apply bg-gradient-to-br from-gold-400 to-[#B8941D];
+  }
+}
+
+@keyframes sponsors-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.sponsors-marquee-track {
+  animation: sponsors-marquee var(--marquee-duration, 32s) linear infinite;
+}
+
+.sponsors-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+body {
+  @apply bg-navy-950 text-cream-100 font-sans min-h-screen flex flex-col;
+}
+
+/* Hide scrollbar for tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.article-rich > * + * {
+  margin-top: 1.5rem;
+}
+
+.article-rich p {
+  color: color-mix(in srgb, var(--color-cream-100) 84%, transparent);
+  font-size: 1.05rem;
+  line-height: 1.95;
+}
+
+.article-rich p:first-of-type {
+  color: var(--color-cream-100);
+  font-size: 1.18rem;
+}
+
+.article-rich p:first-of-type::first-letter {
+  float: left;
+  margin-right: 0.75rem;
+  margin-top: 0.3rem;
+  font-family: var(--font-outfit), sans-serif;
+  font-size: 3.75rem;
+  font-weight: 800;
+  line-height: 0.85;
+  color: var(--color-blue-400);
+}
+
+.article-rich h2,
+.article-rich h3,
+.article-rich h4 {
+  color: var(--color-cream-100);
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.article-rich h2 {
+  font-size: clamp(1.7rem, 3vw, 2.35rem);
+  margin-top: 3rem;
+}
+
+.article-rich h3 {
+  font-size: clamp(1.35rem, 2.3vw, 1.7rem);
+  margin-top: 2.25rem;
+}
+
+.article-rich h4 {
+  font-size: 1.15rem;
+  margin-top: 2rem;
+}
+
+.article-rich strong {
+  color: var(--color-cream-100);
+  font-weight: 700;
+}
+
+.article-rich em {
+  color: color-mix(in srgb, var(--color-gold-400) 88%, white 12%);
+}
+
+.article-rich a {
+  color: var(--color-blue-400);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.24em;
+}
+
+.article-rich ul,
+.article-rich ol {
+  display: grid;
+  gap: 0.85rem;
+  padding-left: 1.25rem;
+  color: color-mix(in srgb, var(--color-cream-100) 84%, transparent);
+}
+
+.article-rich li::marker {
+  color: var(--color-blue-400);
+}
+
+.article-rich blockquote {
+  border-left: 3px solid color-mix(in srgb, var(--color-blue-400) 70%, transparent);
+  background: color-mix(in srgb, var(--color-blue-400) 9%, transparent);
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  color: var(--color-cream-100);
+}
+
+.article-rich hr {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-cream-100) 12%, transparent);
+  margin: 2.25rem 0;
+}
+
+.article-rich img {
+  width: 100%;
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-cream-100) 8%, transparent);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.22);
+}
+
+.article-rich code {
+  border: 1px solid color-mix(in srgb, var(--color-blue-400) 16%, transparent);
+  background: color-mix(in srgb, var(--color-blue-400) 10%, transparent);
+  border-radius: 0.5rem;
+  padding: 0.15rem 0.45rem;
+  color: var(--color-cream-100);
+}
+
+.article-rich pre {
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--color-cream-100) 10%, transparent);
+  background: color-mix(in srgb, var(--color-navy-900) 88%, black 12%);
+  border-radius: 1.25rem;
+  padding: 1rem 1.15rem;
+}
+
+.article-rich pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}

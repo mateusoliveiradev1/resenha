@@ -1,0 +1,9 @@
+{
+    "name": "@resenha/config",
+    "private": true,
+    "version": "1.0.0",
+    "exports": {
+        "./eslint": "./eslint/index.js",
+        "./tailwind": "./tailwind/index.ts"
+    }
+}
