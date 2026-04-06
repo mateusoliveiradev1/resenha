@@ -1,4 +1,5 @@
 const DEFAULT_DEV_ADMIN_URL = "http://localhost:3001";
+const DEFAULT_PRODUCTION_ADMIN_URL = "https://admin-mateusoliveiradev1s-projects.vercel.app";
 
 function normalizeBaseUrl(value: string) {
     return value.trim().replace(/\/+$/, "");
@@ -18,5 +19,5 @@ export function getAdminLoginUrl() {
         return `${DEFAULT_DEV_ADMIN_URL}/login`;
     }
 
-    return "/login";
+    return `${DEFAULT_PRODUCTION_ADMIN_URL}/login`;
 }

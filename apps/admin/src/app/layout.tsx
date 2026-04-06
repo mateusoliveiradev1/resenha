@@ -17,6 +17,11 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Admin | Resenha FC",
   description: "Painel administrativo Resenha FC.",
+  icons: {
+    icon: "/icon.svg?v=2",
+    shortcut: "/icon.svg?v=2",
+    apple: "/icon.svg?v=2",
+  },
 };
 
 export default async function RootLayout({

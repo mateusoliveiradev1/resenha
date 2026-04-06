@@ -19,6 +19,11 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Resenha FC | Futebol Amador",
   description: "Clube fundado em 2023 com futebol amador, conteudo institucional e parceiros do Resenha RFC.",
+  icons: {
+    icon: "/icon.svg?v=2",
+    shortcut: "/icon.svg?v=2",
+    apple: "/icon.svg?v=2",
+  },
 };
 
 export default function RootLayout({

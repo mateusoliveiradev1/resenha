@@ -1,0 +1,72 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="crownGradient" x1="128" y1="6" x2="128" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5F0E1"/>
+      <stop offset="1" stop-color="#D4A843"/>
+    </linearGradient>
+    <linearGradient id="rimGradient" x1="60" y1="28" x2="196" y2="236" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5F0E1"/>
+      <stop offset="0.52" stop-color="#D4A843"/>
+      <stop offset="1" stop-color="#8C6A16"/>
+    </linearGradient>
+    <linearGradient id="shieldGradient" x1="128" y1="44" x2="128" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#132743"/>
+      <stop offset="0.55" stop-color="#091525"/>
+      <stop offset="1" stop-color="#060E1A"/>
+    </linearGradient>
+    <linearGradient id="bandGradient" x1="54" y1="180" x2="202" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#173B69"/>
+      <stop offset="0.45" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#6CA7FF"/>
+    </linearGradient>
+    <radialGradient id="glowGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(186 88) rotate(136.219) scale(122.359 112.95)">
+      <stop stop-color="#3B82F6" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#3B82F6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="14" y="18" width="228" height="228" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="10"/>
+      <feGaussianBlur stdDeviation="12"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0117647 0 0 0 0 0.0431373 0 0 0 0 0.101961 0 0 0 0.42 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+    <clipPath id="innerShieldClip">
+      <path d="M128 48C160.688 48 189.326 54.3876 201 61.8947V113.735C201 159.953 171.875 197.176 128 216C84.125 197.176 55 159.953 55 113.735V61.8947C66.6737 54.3876 95.3125 48 128 48Z"/>
+    </clipPath>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <circle cx="182" cy="84" r="68" fill="url(#glowGradient)"/>
+
+    <path d="M89 36L104 12L128 29L152 12L167 36L155 36L147 25L128 42L109 25L101 36H89Z" fill="url(#crownGradient)"/>
+
+    <path d="M128 30C171.654 30 208.52 38.9216 221 48.913V114.565C221 173.327 183.337 220.264 128 240C72.6632 220.264 35 173.327 35 114.565V48.913C47.4798 38.9216 84.3464 30 128 30Z" fill="url(#rimGradient)"/>
+    <path d="M128 40C164.426 40 196.327 47.4096 209 56.1987V113.52C209 166.315 175.035 208.294 128 226C80.9652 208.294 47 166.315 47 113.52V56.1987C59.6725 47.4096 91.5744 40 128 40Z" fill="#17355E"/>
+    <path d="M128 48C160.688 48 189.326 54.3876 201 61.8947V113.735C201 159.953 171.875 197.176 128 216C84.125 197.176 55 159.953 55 113.735V61.8947C66.6737 54.3876 95.3125 48 128 48Z" fill="url(#shieldGradient)"/>
+
+    <g clip-path="url(#innerShieldClip)">
+      <path d="M36 188L223 118V144L36 214V188Z" fill="url(#bandGradient)"/>
+      <path d="M46 176L215 114" stroke="#8EC5FF" stroke-width="7" stroke-linecap="round" opacity="0.55"/>
+      <path d="M62 58H194V84C170 79 146 77 128 77C110 77 86 79 62 84V58Z" fill="#060E1A" fill-opacity="0.78"/>
+      <path d="M62 58H194V84C170 79 146 77 128 77C110 77 86 79 62 84V58Z" stroke="#F5F0E1" stroke-opacity="0.16" stroke-width="3"/>
+    </g>
+
+    <text
+      x="128"
+      y="156"
+      text-anchor="middle"
+      font-family="Arial Black, Arial, sans-serif"
+      font-size="116"
+      font-weight="900"
+      letter-spacing="-0.06em"
+      fill="#F5F0E1"
+    >
+      R
+    </text>
+
+    <path d="M128 48C160.688 48 189.326 54.3876 201 61.8947V113.735C201 159.953 171.875 197.176 128 216C84.125 197.176 55 159.953 55 113.735V61.8947C66.6737 54.3876 95.3125 48 128 48Z" stroke="#F5F0E1" stroke-opacity="0.12" stroke-width="2"/>
+  </g>
+</svg>
