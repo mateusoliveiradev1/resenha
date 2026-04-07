@@ -95,6 +95,19 @@
 | match_id | uuid FK → matches | Nullable |
 | uploaded_at | timestamp | |
 
+## staff
+
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| id | uuid PK | |
+| name | text | Nome completo |
+| role | text | Cargo exibido na diretoria |
+| photo_url | text | Foto enviada pelo admin |
+| display_order | int | Ordem manual de exibicao |
+| is_active | boolean | Controla se aparece na pagina publica |
+| created_at | timestamp | |
+| updated_at | timestamp | |
+
 ## Relações
 
 ```

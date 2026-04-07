@@ -11,6 +11,8 @@ interface AdminPost {
     readingTimeMin: number;
 }
 
+export type { AdminPost };
+
 export function PostsTable({ data }: { data: AdminPost[] }) {
     const router = useRouter();
 

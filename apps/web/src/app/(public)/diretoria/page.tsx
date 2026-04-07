@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Badge, Card, CardContent, Container } from "@resenha/ui";
+import Image from "next/image";
+import { Badge, Card, CardContent, Container, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { db } from "@resenha/db";
 import { staff } from "@resenha/db/schema";
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -94,7 +95,11 @@ const getRoleCopy = (role: string) => {
 };
 
 export default async function DiretoriaPage() {
-    const staffMembers = await db.select().from(staff).orderBy(asc(staff.role), asc(staff.name));
+    const staffMembers = await db
+        .select()
+        .from(staff)
+        .where(eq(staff.isActive, true))
+        .orderBy(asc(staff.role), asc(staff.displayOrder), asc(staff.name));
 
     type StaffMember = (typeof staffMembers)[number];
 
@@ -209,9 +214,22 @@ export default async function DiretoriaPage() {
                                             {group.members.map((member) => (
                                                 <div key={member.id} className="rounded-2xl border border-cream-100/10 bg-navy-950/45 p-5">
                                                     <div className="flex items-start gap-4">
-                                                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10 font-display text-lg font-bold text-blue-300">
-                                                            {getInitials(member.name)}
-                                                        </div>
+                                                        {member.photoUrl ? (
+                                                            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-blue-500/20 bg-blue-500/10">
+                                                                <Image
+                                                                    src={member.photoUrl}
+                                                                    alt={member.name}
+                                                                    fill
+                                                                    unoptimized={shouldBypassNextImageOptimization(member.photoUrl)}
+                                                                    className="object-cover"
+                                                                    sizes="64px"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10 font-display text-lg font-bold text-blue-300">
+                                                                {getInitials(member.name)}
+                                                            </div>
+                                                        )}
                                                         <div className="min-w-0">
                                                             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gold-300">
                                                                 {member.role}

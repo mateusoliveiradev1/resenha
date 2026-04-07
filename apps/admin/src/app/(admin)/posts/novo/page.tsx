@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CreatePostSchema, type CreatePostInput } from "@resenha/validators";
 import { Button, FormField, Card, CardContent } from "@resenha/ui";
@@ -27,7 +27,7 @@ export default function NovoPostPage() {
     const {
         register,
         handleSubmit,
-        watch,
+        control,
         setValue,
         formState: { errors }
     } = useForm<CreatePostInput>({
@@ -43,7 +43,10 @@ export default function NovoPostPage() {
         }
     });
 
-    const coverImage = watch("coverImage");
+    const coverImage = useWatch({
+        control,
+        name: "coverImage"
+    });
     const handleInvalidSubmit = () => {
         setFormFeedback("Revise os campos obrigatorios destacados antes de salvar o post.");
     };

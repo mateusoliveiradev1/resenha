@@ -36,6 +36,7 @@ export interface SidebarProps {
 export const adminNavItems: SidebarItem[] = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: Users, label: "Jogadores", href: "/jogadores" },
+    { icon: Shield, label: "Comissao", href: "/comissao" },
     { icon: CalendarDays, label: "Partidas", href: "/partidas" },
     { icon: Handshake, label: "Patrocinadores", href: "/patrocinadores" },
     { icon: FileText, label: "Posts", href: "/posts" },

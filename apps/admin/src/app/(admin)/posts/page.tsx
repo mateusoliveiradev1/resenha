@@ -6,9 +6,16 @@ import { db } from "@resenha/db";
 import { posts } from "@resenha/db/schema";
 import { desc } from "drizzle-orm";
 import { PostsTable } from "./PostsTable";
+import type { AdminPost } from "./PostsTable";
 
 export default async function PostsListPage() {
-    const data = await db.select().from(posts).orderBy(desc(posts.createdAt));
+    const data: AdminPost[] = await db.select({
+        id: posts.id,
+        title: posts.title,
+        category: posts.category,
+        publishedAt: posts.publishedAt,
+        readingTimeMin: posts.readingTimeMin,
+    }).from(posts).orderBy(desc(posts.createdAt));
 
     return (
         <div className="space-y-6">
@@ -24,7 +31,7 @@ export default async function PostsListPage() {
                 </Link>
             </div>
 
-            <PostsTable data={data as any} />
+            <PostsTable data={data} />
         </div>
     );
 }
