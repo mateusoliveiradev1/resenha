@@ -8,9 +8,10 @@ interface EstatisticasViewProps {
     goalsRanking: RankItem[];
     assistsRanking: RankItem[];
     cardsRanking: RankItem[];
+    minutesRanking: RankItem[];
 }
 
-type TabId = "GOLS" | "ASSISTENCIAS" | "CARTOES";
+type TabId = "GOLS" | "ASSISTENCIAS" | "CARTOES" | "MINUTOS";
 
 interface TabConfig {
     label: string;
@@ -22,7 +23,12 @@ interface TabConfig {
     gradientClass: string;
 }
 
-export function EstatisticasView({ goalsRanking, assistsRanking, cardsRanking }: EstatisticasViewProps) {
+export function EstatisticasView({
+    goalsRanking,
+    assistsRanking,
+    cardsRanking,
+    minutesRanking,
+}: EstatisticasViewProps) {
     const [activeTab, setActiveTab] = React.useState<TabId>("GOLS");
 
     const tabConfigs: Record<TabId, TabConfig> = {
@@ -30,35 +36,45 @@ export function EstatisticasView({ goalsRanking, assistsRanking, cardsRanking }:
             label: "Artilharia",
             valueLabel: "gols",
             eyebrow: "Impacto ofensivo",
-            description: "Os jogadores que mais decidiram o placar e puxaram a produção ofensiva do Resenha.",
+            description: "Os jogadores que mais decidiram o placar e puxaram a producao ofensiva do Resenha.",
             data: goalsRanking,
             badgeVariant: "gold",
-            gradientClass: "from-gold-400/18 via-gold-400/8 to-transparent"
+            gradientClass: "from-gold-400/18 via-gold-400/8 to-transparent",
         },
         ASSISTENCIAS: {
-            label: "Assistências",
+            label: "Assistencias",
             valueLabel: "assist.",
-            eyebrow: "Criação de jogadas",
-            description: "Quem mais serviu o time e acelerou as conexões entre construção e finalização.",
+            eyebrow: "Criacao de jogadas",
+            description: "Quem mais serviu o time e acelerou as conexoes entre construcao e finalizacao.",
             data: assistsRanking,
             badgeVariant: "accent",
-            gradientClass: "from-blue-500/18 via-blue-500/8 to-transparent"
+            gradientClass: "from-blue-500/18 via-blue-500/8 to-transparent",
         },
         CARTOES: {
-            label: "Cartões",
-            valueLabel: "cartões",
+            label: "Cartoes",
+            valueLabel: "cartoes",
             eyebrow: "Disciplina competitiva",
             description: "Leitura de intensidade e controle emocional ao longo da temporada.",
             data: cardsRanking,
             badgeVariant: "warning",
-            gradientClass: "from-yellow-500/18 via-yellow-500/8 to-transparent"
-        }
+            gradientClass: "from-yellow-500/18 via-yellow-500/8 to-transparent",
+        },
+        MINUTOS: {
+            label: "Minutos",
+            valueLabel: "min",
+            eyebrow: "Carga de jogo",
+            description: "Quem mais sustentou tempo em quadra ou campo nas partidas registradas.",
+            data: minutesRanking,
+            badgeVariant: "accent",
+            gradientClass: "from-emerald-500/18 via-emerald-500/8 to-transparent",
+        },
     };
 
     const tabs = [
         { id: "GOLS", label: "Artilharia" },
-        { id: "ASSISTENCIAS", label: "Assistências" },
-        { id: "CARTOES", label: "Cartões" }
+        { id: "ASSISTENCIAS", label: "Assistencias" },
+        { id: "CARTOES", label: "Cartoes" },
+        { id: "MINUTOS", label: "Minutos" },
     ];
 
     const activeTabConfig = tabConfigs[activeTab];
@@ -94,7 +110,7 @@ export function EstatisticasView({ goalsRanking, assistsRanking, cardsRanking }:
                         {leader ? (
                             <div className="mt-10 rounded-[1.75rem] border border-cream-100/10 bg-navy-950/60 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.24)]">
                                 <p className="text-xs uppercase tracking-[0.28em] text-cream-300/70">
-                                    Líder atual
+                                    Lider atual
                                 </p>
                                 <div className="mt-3 flex items-end justify-between gap-4">
                                     <div className="min-w-0">
@@ -117,7 +133,7 @@ export function EstatisticasView({ goalsRanking, assistsRanking, cardsRanking }:
                             </div>
                         ) : (
                             <div className="mt-10 rounded-[1.75rem] border border-dashed border-cream-100/10 bg-navy-950/35 p-5 text-sm leading-6 text-cream-300">
-                                Os números dessa aba vão aparecer automaticamente quando a comissão registrar os dados das partidas.
+                                Os numeros dessa aba vao aparecer automaticamente quando a comissao registrar os dados das partidas.
                             </div>
                         )}
                     </CardContent>

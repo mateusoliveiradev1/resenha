@@ -1,28 +1,45 @@
 "use client";
 
 import * as React from "react";
-import { useForm, useFieldArray, type Resolver } from "react-hook-form";
+import { useFieldArray, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UpdateMatchSchema, type UpdateMatchInput, UpsertMatchStatsSchema, type UpsertMatchStatsInput } from "@resenha/validators";
-import { Button, FormField, Card, CardContent, Tabs, shouldBypassNextImageOptimization } from "@resenha/ui";
-import { ArrowLeft, Save, Trash2, Plus, UploadCloud } from "lucide-react";
+import {
+    UpdateMatchSchema,
+    type UpdateMatchInput,
+    UpsertMatchStatsSchema,
+    type UpsertMatchStatsInput,
+} from "@resenha/validators";
+import { Button, Card, CardContent, FormField, Tabs } from "@resenha/ui";
+import { ArrowLeft, Building2, Plus, Save, Trash2, Trophy } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { updateMatch, upsertMatchStats } from "@/actions/matches";
-import { uploadOpponentLogo } from "@/lib/opponentLogoUpload";
 
 type MatchData = {
     id: string;
+    date: Date;
     opponent: string;
-    opponentLogo?: string | null;
+    matchCategory: "CHAMPIONSHIP" | "FRIENDLY";
+    homeClubId?: string | null;
+    awayClubId?: string | null;
+    homeLabel?: string | null;
+    awayLabel?: string | null;
+    championshipId?: string | null;
+    championshipGroupId?: string | null;
+    phaseLabel?: string | null;
+    roundLabel?: string | null;
+    matchday?: number | null;
     location: string;
     status: "SCHEDULED" | "LIVE" | "FINISHED";
     scoreHome?: number | null;
     scoreAway?: number | null;
+    tiebreakHome?: number | null;
+    tiebreakAway?: number | null;
     type: "FUTSAL" | "CAMPO";
+    autoStatus: boolean;
+    durationMinutes?: number | null;
     summary?: string | null;
-    season: string;
+    season?: string | null;
 };
 
 type MatchStatsData = {
@@ -41,45 +58,72 @@ type PlayerOption = {
     shirtNumber: number;
 };
 
-const getErrorMessage = (error: unknown, fallbackMessage: string) => {
-    if (error instanceof Error && error.message) {
-        return error.message;
-    }
+type ClubOption = {
+    id: string;
+    name: string;
+    shortName?: string | null;
+    isResenha: boolean;
+};
 
-    return fallbackMessage;
+type ChampionshipOption = {
+    id: string;
+    name: string;
+    seasonLabel?: string | null;
+    status: "PLANNED" | "LIVE" | "FINISHED";
 };
 
 export function EditarPartidaForm({
     match,
     stats,
-    players
+    players,
+    clubs,
+    championships,
 }: {
     match: MatchData;
     stats: MatchStatsData[];
     players: PlayerOption[];
+    clubs: ClubOption[];
+    championships: ChampionshipOption[];
 }) {
     const router = useRouter();
     const [activeTab, setActiveTab] = React.useState("GERAL");
     const [isSavingGeneral, setIsSavingGeneral] = React.useState(false);
     const [isSavingStats, setIsSavingStats] = React.useState(false);
-    const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
-    const [logoUrl, setLogoUrl] = React.useState<string | null>(match.opponentLogo ?? null);
-    const [logoFeedback, setLogoFeedback] = React.useState<string | null>(null);
     const [generalFeedback, setGeneralFeedback] = React.useState<string | null>(null);
     const [statsFeedback, setStatsFeedback] = React.useState<string | null>(null);
 
-    const { register: registerMatch, handleSubmit: submitMatch, formState: { errors: matchErrs } } = useForm<UpdateMatchInput>({
+    const {
+        register: registerMatch,
+        handleSubmit: submitMatch,
+        watch,
+        setValue,
+        formState: { errors: matchErrs },
+    } = useForm<UpdateMatchInput>({
         resolver: zodResolver(UpdateMatchSchema) as Resolver<UpdateMatchInput>,
         defaultValues: {
+            date: new Date(match.date).toISOString().slice(0, 16),
             opponent: match.opponent || "",
+            matchCategory: match.matchCategory || "FRIENDLY",
+            homeClubId: match.homeClubId ?? null,
+            awayClubId: match.awayClubId ?? null,
+            homeLabel: match.homeLabel ?? "",
+            awayLabel: match.awayLabel ?? "",
+            championshipId: match.championshipId ?? null,
+            championshipGroupId: match.championshipGroupId ?? null,
+            phaseLabel: match.phaseLabel ?? "",
+            roundLabel: match.roundLabel ?? "",
+            matchday: match.matchday ?? null,
             location: match.location || "",
             status: match.status || "SCHEDULED",
             scoreHome: match.scoreHome ?? undefined,
             scoreAway: match.scoreAway ?? undefined,
+            tiebreakHome: match.tiebreakHome ?? undefined,
+            tiebreakAway: match.tiebreakAway ?? undefined,
             type: match.type || "FUTSAL",
+            autoStatus: match.autoStatus ?? true,
+            durationMinutes: match.durationMinutes ?? undefined,
             summary: match.summary || "",
             season: match.season || "",
-            opponentLogo: match.opponentLogo || ""
         }
     });
 
@@ -101,34 +145,18 @@ export function EditarPartidaForm({
     });
 
     const { fields, append, remove } = useFieldArray({ control, name: "stats" });
+    const matchCategory = watch("matchCategory");
+    const autoStatus = watch("autoStatus");
 
-    const handleLogoSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-
-        if (!file) {
-            return;
+    React.useEffect(() => {
+        if (matchCategory === "FRIENDLY") {
+            setValue("championshipId", null);
+            setValue("championshipGroupId", null);
+            setValue("phaseLabel", "");
+            setValue("roundLabel", "");
+            setValue("matchday", null);
         }
-
-        setIsUploadingLogo(true);
-        setLogoFeedback("Enviando escudo...");
-        setGeneralFeedback(null);
-
-        try {
-            const uploadedUrl = await uploadOpponentLogo(file);
-            setLogoUrl(uploadedUrl);
-            setLogoFeedback("Escudo enviado com sucesso. Salve a partida para persistir a URL.");
-        } catch (error: unknown) {
-            setLogoFeedback(getErrorMessage(error, "Nao foi possivel enviar o escudo."));
-        } finally {
-            setIsUploadingLogo(false);
-            event.target.value = "";
-        }
-    };
-
-    const clearUploadedLogo = () => {
-        setLogoUrl(null);
-        setLogoFeedback("Escudo removido. Ao salvar, a partida ficara sem logo do adversario.");
-    };
+    }, [matchCategory, setValue]);
 
     const onMatchSubmit = async (data: UpdateMatchInput) => {
         setIsSavingGeneral(true);
@@ -136,7 +164,7 @@ export function EditarPartidaForm({
 
         const result = await updateMatch(match.id, {
             ...data,
-            opponentLogo: logoUrl
+            date: data.date ? new Date(data.date).toISOString() : undefined,
         });
 
         setIsSavingGeneral(false);
@@ -171,13 +199,16 @@ export function EditarPartidaForm({
     };
 
     return (
-        <div className="space-y-6 max-w-4xl mx-auto">
+        <div className="mx-auto max-w-5xl space-y-6">
             <div className="flex items-center gap-4">
-                <Link href="/partidas" className="text-cream-300 hover:text-cream-100 transition-colors p-2 rounded-full hover:bg-navy-800">
+                <Link href="/partidas" className="rounded-full p-2 text-cream-300 transition-colors hover:bg-navy-800 hover:text-cream-100">
                     <ArrowLeft className="h-5 w-5" />
                 </Link>
                 <div>
                     <h1 className="font-display text-2xl font-bold tracking-tight text-cream-100">Editar Partida</h1>
+                    <p className="mt-1 text-sm text-cream-300">
+                        Atualize confronto, campeonato, status e estatisticas sem quebrar os automatismos do site.
+                    </p>
                 </div>
             </div>
 
@@ -194,77 +225,325 @@ export function EditarPartidaForm({
             <div className="mt-6">
                 {activeTab === "GERAL" && (
                     <form onSubmit={submitMatch(onMatchSubmit)}>
-                        <Card className="bg-navy-900 border-navy-800">
-                            <CardContent className="p-6 space-y-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <FormField id="opponent" label="Adversario" {...registerMatch("opponent")} error={!!matchErrs.opponent} errorMessage={matchErrs.opponent?.message} />
-                                    <FormField id="season" label="Campeonato / Torneio" {...registerMatch("season")} error={!!matchErrs.season} errorMessage={matchErrs.season?.message} />
-                                    <FormField id="location" label="Local" {...registerMatch("location")} error={!!matchErrs.location} errorMessage={matchErrs.location?.message} />
+                        <Card className="border-navy-800 bg-navy-900">
+                            <CardContent className="space-y-8 p-6">
+                                <div className="space-y-4">
+                                    <div className="flex flex-col gap-3 border-b border-navy-800 pb-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-400">
+                                                Estrutura da partida
+                                            </h3>
+                                            <p className="mt-1 text-xs text-cream-300">
+                                                Ajuste o contexto competitivo e mantenha a home, agenda e campeonatos sincronizados.
+                                            </p>
+                                        </div>
 
-                                    <div className="space-y-2">
-                                        <label htmlFor="status" className="text-sm font-medium leading-none text-cream-100">Status</label>
-                                        <select id="status" {...registerMatch("status")} className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                                            <option value="SCHEDULED">Agendada</option>
-                                            <option value="LIVE">Ao vivo</option>
-                                            <option value="FINISHED">Finalizada</option>
-                                        </select>
+                                        <div className="flex flex-wrap gap-2 text-xs">
+                                            <Link
+                                                href="/clubs/novo"
+                                                className="inline-flex items-center gap-2 rounded-full border border-navy-700 px-3 py-1.5 text-cream-300 transition-colors hover:border-blue-500/40 hover:text-cream-100"
+                                            >
+                                                <Building2 className="h-3.5 w-3.5" />
+                                                Novo clube
+                                            </Link>
+                                            <Link
+                                                href="/campeonatos/novo"
+                                                className="inline-flex items-center gap-2 rounded-full border border-navy-700 px-3 py-1.5 text-cream-300 transition-colors hover:border-blue-500/40 hover:text-cream-100"
+                                            >
+                                                <Trophy className="h-3.5 w-3.5" />
+                                                Novo campeonato
+                                            </Link>
+                                        </div>
                                     </div>
 
-                                    <FormField id="scoreHome" label="Gols (Resenha)" type="number" {...registerMatch("scoreHome", { valueAsNumber: true })} />
-                                    <FormField id="scoreAway" label="Gols (Adversario)" type="number" {...registerMatch("scoreAway", { valueAsNumber: true })} />
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <label htmlFor="matchCategory" className="text-sm font-medium leading-none text-cream-100">
+                                                Tipo de cadastro
+                                            </label>
+                                            <select
+                                                id="matchCategory"
+                                                {...registerMatch("matchCategory")}
+                                                className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                            >
+                                                <option value="FRIENDLY">Jogo avulso / amistoso</option>
+                                                <option value="CHAMPIONSHIP">Partida de campeonato</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label htmlFor="type" className="text-sm font-medium leading-none text-cream-100">
+                                                Modalidade
+                                            </label>
+                                            <select
+                                                id="type"
+                                                {...registerMatch("type")}
+                                                className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                            >
+                                                <option value="FUTSAL">Quadra / futsal</option>
+                                                <option value="CAMPO">Campo</option>
+                                            </select>
+                                        </div>
+
+                                        {matchCategory === "CHAMPIONSHIP" ? (
+                                            <div className="space-y-2 sm:col-span-2">
+                                                <label htmlFor="championshipId" className="text-sm font-medium leading-none text-cream-100">
+                                                    Campeonato
+                                                </label>
+                                                <select
+                                                    id="championshipId"
+                                                    {...registerMatch("championshipId")}
+                                                    className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                >
+                                                    <option value="">Selecione um campeonato</option>
+                                                    {championships.map((championship) => (
+                                                        <option key={championship.id} value={championship.id}>
+                                                            {championship.name}
+                                                            {championship.seasonLabel ? ` • ${championship.seasonLabel}` : ""}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {matchErrs.championshipId?.message && (
+                                                    <p className="text-[0.8rem] font-medium text-red-500">
+                                                        {matchErrs.championshipId.message}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <FormField
+                                                id="season"
+                                                label="Contexto / serie da partida"
+                                                {...registerMatch("season")}
+                                                error={!!matchErrs.season}
+                                                errorMessage={matchErrs.season?.message}
+                                            />
+                                        )}
+
+                                        <FormField
+                                            id="date"
+                                            label="Data e hora"
+                                            type="datetime-local"
+                                            {...registerMatch("date")}
+                                            error={!!matchErrs.date}
+                                            errorMessage={matchErrs.date?.message}
+                                        />
+
+                                        <FormField
+                                            id="location"
+                                            label="Local"
+                                            {...registerMatch("location")}
+                                            error={!!matchErrs.location}
+                                            errorMessage={matchErrs.location?.message}
+                                        />
+
+                                        {matchCategory === "CHAMPIONSHIP" && (
+                                            <>
+                                                <FormField
+                                                    id="phaseLabel"
+                                                    label="Fase"
+                                                    {...registerMatch("phaseLabel")}
+                                                    error={!!matchErrs.phaseLabel}
+                                                    errorMessage={matchErrs.phaseLabel?.message}
+                                                />
+                                                <FormField
+                                                    id="roundLabel"
+                                                    label="Rodada"
+                                                    {...registerMatch("roundLabel")}
+                                                    error={!!matchErrs.roundLabel}
+                                                    errorMessage={matchErrs.roundLabel?.message}
+                                                />
+                                                <FormField
+                                                    id="matchday"
+                                                    label="Numero da rodada"
+                                                    type="number"
+                                                    {...registerMatch("matchday", { valueAsNumber: true })}
+                                                    error={!!matchErrs.matchday}
+                                                    errorMessage={matchErrs.matchday?.message}
+                                                />
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4">
-                                    <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-400 border-b border-navy-800 pb-2">Escudo do adversario</h3>
-
-                                    <label className="flex min-h-44 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-navy-700 bg-navy-950/60 px-6 py-8 text-center transition-all hover:border-blue-500/50 hover:bg-navy-900">
-                                        <input type="file" className="hidden" accept="image/png,image/jpeg,image/webp" onChange={handleLogoSelection} />
-
-                                        {logoUrl ? (
-                                            <div className="space-y-4">
-                                                <Image
-                                                    src={logoUrl}
-                                                    alt="Escudo atual do adversario"
-                                                    width={96}
-                                                    height={96}
-                                                    unoptimized={shouldBypassNextImageOptimization(logoUrl)}
-                                                    className="mx-auto h-24 w-24 rounded-full border border-navy-700 bg-navy-900 object-contain p-2"
-                                                />
-                                                <p className="text-sm font-medium text-cream-100">Clique para trocar o escudo</p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                <UploadCloud className="mx-auto h-10 w-10 text-cream-300" />
-                                                <div className="space-y-1">
-                                                    <p className="text-sm font-medium text-blue-400">
-                                                        {isUploadingLogo ? "Enviando escudo..." : "Clique para enviar o escudo do adversario"}
-                                                    </p>
-                                                    <p className="text-xs text-cream-300">
-                                                        A imagem vai para o armazenamento de arquivos e o banco salva somente a URL.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </label>
-
-                                    {logoFeedback && (
-                                        <p className={`text-sm ${logoUrl ? "text-emerald-400" : "text-cream-300"}`}>
-                                            {logoFeedback}
+                                    <div className="border-b border-navy-800 pb-3">
+                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-400">
+                                            Confronto
+                                        </h3>
+                                        <p className="mt-1 text-xs text-cream-300">
+                                            O escudo exibido no site vem do cadastro do clube e nao precisa mais ser enviado no jogo.
                                         </p>
-                                    )}
+                                    </div>
 
-                                    {logoUrl && (
-                                        <div className="flex justify-start">
-                                            <Button type="button" variant="ghost" onClick={clearUploadedLogo}>
-                                                Remover escudo
-                                            </Button>
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <label htmlFor="homeClubId" className="text-sm font-medium leading-none text-cream-100">
+                                                Mandante
+                                            </label>
+                                            <select
+                                                id="homeClubId"
+                                                {...registerMatch("homeClubId")}
+                                                className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                            >
+                                                <option value="">Selecione o mandante</option>
+                                                {clubs.map((club) => (
+                                                    <option key={club.id} value={club.id}>
+                                                        {club.name}{club.isResenha ? " • Resenha" : ""}
+                                                    </option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-xs text-cream-300">
+                                                    Para chaveamento automatico, deixe o clube vazio e use rotulos como 2o colocado ou VENC JOGO 37.
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                            <label htmlFor="awayClubId" className="text-sm font-medium leading-none text-cream-100">
+                                                Visitante
+                                            </label>
+                                            <select
+                                                id="awayClubId"
+                                                {...registerMatch("awayClubId")}
+                                                className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                            >
+                                                <option value="">Selecione o visitante</option>
+                                                {clubs.map((club) => (
+                                                    <option key={club.id} value={club.id}>
+                                                        {club.name}{club.isResenha ? " • Resenha" : ""}
+                                                    </option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-xs text-cream-300">
+                                                    Isso evita clube fake e deixa a semifinal/final trocar sozinha para o time real.
+                                                </p>
+                                            </div>
+
+                                            <FormField
+                                                id="homeLabel"
+                                                label="Rotulo oficial do mandante"
+                                                {...registerMatch("homeLabel")}
+                                                error={!!matchErrs.homeLabel}
+                                                errorMessage={matchErrs.homeLabel?.message}
+                                            />
+
+                                            <FormField
+                                                id="awayLabel"
+                                                label="Rotulo oficial do visitante"
+                                                {...registerMatch("awayLabel")}
+                                                error={!!matchErrs.awayLabel}
+                                                errorMessage={matchErrs.awayLabel?.message}
+                                            />
                                         </div>
+
+                                    {(matchErrs.homeClubId?.message || matchErrs.awayClubId?.message || matchErrs.homeLabel?.message || matchErrs.awayLabel?.message || matchErrs.opponent?.message) && (
+                                        <p className="text-[0.8rem] font-medium text-red-500">
+                                            {matchErrs.homeClubId?.message || matchErrs.awayClubId?.message || matchErrs.homeLabel?.message || matchErrs.awayLabel?.message || matchErrs.opponent?.message}
+                                        </p>
                                     )}
                                 </div>
 
+                                <div className="space-y-4">
+                                    <div className="border-b border-navy-800 pb-3">
+                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-400">
+                                            Controle e placar
+                                        </h3>
+                                        <p className="mt-1 text-xs text-cream-300">
+                                            O status automatico ajuda a home a destacar jogos em LIVE sem ajuste manual.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-6">
+                                        <div className="space-y-2">
+                                            <label htmlFor="status" className="text-sm font-medium leading-none text-cream-100">
+                                                Status
+                                            </label>
+                                            <select
+                                                id="status"
+                                                {...registerMatch("status")}
+                                                className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                            >
+                                                <option value="SCHEDULED">Agendada</option>
+                                                <option value="LIVE">Ao vivo</option>
+                                                <option value="FINISHED">Finalizada</option>
+                                            </select>
+                                        </div>
+
+                                        <FormField
+                                            id="durationMinutes"
+                                            label="Janela LIVE (min)"
+                                            type="number"
+                                            {...registerMatch("durationMinutes", { valueAsNumber: true })}
+                                            error={!!matchErrs.durationMinutes}
+                                            errorMessage={matchErrs.durationMinutes?.message}
+                                        />
+
+                                        <FormField
+                                            id="scoreHome"
+                                            label="Gols do mandante"
+                                            type="number"
+                                            {...registerMatch("scoreHome", { valueAsNumber: true })}
+                                            error={!!matchErrs.scoreHome}
+                                            errorMessage={matchErrs.scoreHome?.message}
+                                        />
+                                        <FormField
+                                            id="scoreAway"
+                                            label="Gols do visitante"
+                                            type="number"
+                                            {...registerMatch("scoreAway", { valueAsNumber: true })}
+                                            error={!!matchErrs.scoreAway}
+                                            errorMessage={matchErrs.scoreAway?.message}
+                                        />
+                                        <FormField
+                                            id="tiebreakHome"
+                                            label="Desempate mandante"
+                                            type="number"
+                                            {...registerMatch("tiebreakHome", { valueAsNumber: true })}
+                                            error={!!matchErrs.tiebreakHome}
+                                            errorMessage={matchErrs.tiebreakHome?.message}
+                                        />
+                                        <FormField
+                                            id="tiebreakAway"
+                                            label="Desempate visitante"
+                                            type="number"
+                                            {...registerMatch("tiebreakAway", { valueAsNumber: true })}
+                                            error={!!matchErrs.tiebreakAway}
+                                            errorMessage={matchErrs.tiebreakAway?.message}
+                                        />
+                                    </div>
+
+                                    <p className="text-xs text-cream-300">
+                                        Use o desempate somente quando o tempo normal terminou empatado.
+                                        Assim o chaveamento mata-mata continua automatico mesmo em semifinais decididas nos penaltis.
+                                    </p>
+
+                                    <label className="flex items-start gap-3 rounded-2xl border border-navy-800 bg-navy-950/50 px-4 py-4 text-sm text-cream-100">
+                                        <input
+                                            type="checkbox"
+                                            {...registerMatch("autoStatus")}
+                                            className="mt-1 h-4 w-4 rounded border-navy-700 bg-navy-900 text-blue-500 focus:ring-blue-500"
+                                        />
+                                        <span>
+                                            <strong className="block font-semibold text-cream-100">Ativar automacao de status</strong>
+                                            <span className="mt-1 block text-xs text-cream-300">
+                                                {autoStatus
+                                                    ? "A partida pode aparecer sozinha como LIVE na home e na pagina de jogos."
+                                                    : "Com a automacao desligada, voce controla o status manualmente."}
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+
                                 <div className="sm:col-span-2">
-                                    <label htmlFor="summary" className="text-sm font-medium leading-none text-cream-100 block mb-2">Resumo do jogo</label>
-                                    <textarea id="summary" {...registerMatch("summary")} rows={4} className="w-full rounded-md border border-navy-800 bg-navy-900 p-3 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" placeholder="Breve relato sobre a partida..." />
+                                    <label htmlFor="summary" className="mb-2 block text-sm font-medium leading-none text-cream-100">
+                                        Resumo do jogo
+                                    </label>
+                                    <textarea
+                                        id="summary"
+                                        {...registerMatch("summary")}
+                                        rows={4}
+                                        className="w-full rounded-md border border-navy-800 bg-navy-900 p-3 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                        placeholder="Breve relato sobre a partida..."
+                                    />
                                 </div>
 
                                 {generalFeedback && (
@@ -273,8 +552,8 @@ export function EditarPartidaForm({
                                     </div>
                                 )}
 
-                                <div className="flex items-center justify-end gap-4 pt-4 border-t border-navy-800">
-                                    <Button type="submit" variant="primary" disabled={isSavingGeneral || isUploadingLogo}>
+                                <div className="flex items-center justify-end gap-4 border-t border-navy-800 pt-4">
+                                    <Button type="submit" variant="primary" disabled={isSavingGeneral}>
                                         <Save className="mr-2 h-4 w-4" />
                                         {isSavingGeneral ? "Salvando..." : "Salvar Partida"}
                                     </Button>
@@ -290,8 +569,8 @@ export function EditarPartidaForm({
                             <CardContent className="p-6 space-y-6">
                                 <div className="space-y-4">
                                     {fields.map((field, index) => (
-                                        <div key={field.id} className="flex flex-wrap items-end gap-4 bg-navy-950/50 p-4 rounded-xl border border-navy-800">
-                                            <div className="flex-1 min-w-[240px]">
+                                        <div key={field.id} className="flex flex-wrap items-end gap-4 rounded-xl border border-navy-800 bg-navy-950/50 p-4">
+                                            <div className="min-w-[220px] flex-1">
                                                 <label className="text-xs font-medium text-cream-300 block mb-1">Jogador</label>
                                                 <select
                                                     {...registerStats(`stats.${index}.playerId`)}
@@ -320,6 +599,10 @@ export function EditarPartidaForm({
                                             <div className="w-20">
                                                 <label className="text-xs font-medium text-cream-300 block mb-1">CV</label>
                                                 <input type="number" {...registerStats(`stats.${index}.redCards`, { valueAsNumber: true })} className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-red-500" />
+                                            </div>
+                                            <div className="w-24">
+                                                <label className="text-xs font-medium text-cream-300 block mb-1">Minutos</label>
+                                                <input type="number" {...registerStats(`stats.${index}.minutesPlayed`, { valueAsNumber: true })} className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-cream-100" />
                                             </div>
                                             <Button type="button" variant="destructive" size="sm" onClick={() => remove(index)} className="h-9 px-3">
                                                 <Trash2 className="h-4 w-4" />

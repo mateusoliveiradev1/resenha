@@ -11,6 +11,7 @@ const navLinks = [
     { label: "Inicio", href: "/" },
     { label: "Elenco", href: "/elenco" },
     { label: "Jogos", href: "/jogos" },
+    { label: "Campeonatos", href: "/campeonatos" },
     { label: "Estatisticas", href: "/estatisticas" },
     { label: "Blog", href: "/blog" },
     { label: "Galeria", href: "/galeria" },

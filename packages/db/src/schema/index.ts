@@ -1,3 +1,5 @@
+export * from "./clubs";
+export * from "./championships";
 export * from "./users";
 export * from "./players";
 export * from "./matches";

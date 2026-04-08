@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "../utils/cn";
 import {
+    Building2,
     CalendarDays,
     FileText,
     Handshake,
@@ -11,6 +12,7 @@ import {
     LogOut,
     Settings,
     Shield,
+    Trophy,
     Users,
     X
 } from "lucide-react";
@@ -37,6 +39,8 @@ export const adminNavItems: SidebarItem[] = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: Users, label: "Jogadores", href: "/jogadores" },
     { icon: Shield, label: "Comissao", href: "/comissao" },
+    { icon: Building2, label: "Clubes", href: "/clubs" },
+    { icon: Trophy, label: "Campeonatos", href: "/campeonatos" },
     { icon: CalendarDays, label: "Partidas", href: "/partidas" },
     { icon: Handshake, label: "Patrocinadores", href: "/patrocinadores" },
     { icon: FileText, label: "Posts", href: "/posts" },

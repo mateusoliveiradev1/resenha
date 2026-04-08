@@ -5,3 +5,5 @@ export * from "./auth";
 export * from "./stats";
 export * from "./sponsor";
 export * from "./staff";
+export * from "./club";
+export * from "./championship";

@@ -29,6 +29,15 @@ const tierTone: Record<SponsorTier, "gold" | "accent" | "outline"> = {
 export function PatrocinadoresTable({ data }: { data: SponsorData[] }) {
     const router = useRouter();
     const [pendingDeleteId, setPendingDeleteId] = React.useState<string | null>(null);
+    const emptyState = (
+        <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <Handshake className="h-8 w-8 text-blue-400" />
+            <div>
+                <p className="font-semibold text-cream-100">Nenhum patrocinador cadastrado.</p>
+                <p className="text-sm text-cream-300">Crie a primeira parceria para exibir logos na home e na pagina institucional.</p>
+            </div>
+        </div>
+    );
 
     const handleDelete = async (sponsor: SponsorData) => {
         const shouldDelete = window.confirm(`Excluir ${sponsor.name}? Essa acao remove o patrocinador do site.`);
@@ -141,20 +150,80 @@ export function PatrocinadoresTable({ data }: { data: SponsorData[] }) {
         },
     ];
 
+    if (data.length === 0) {
+        return (
+            <div className="rounded-xl border border-dashed border-navy-800 bg-navy-900/80 px-4 py-6">
+                {emptyState}
+            </div>
+        );
+    }
+
     return (
-        <DataTable
-            data={data}
-            columns={columns}
-            keyExtractor={(item) => item.id}
-            emptyState={
-                <div className="flex flex-col items-center gap-3 py-6 text-center">
-                    <Handshake className="h-8 w-8 text-blue-400" />
-                    <div>
-                        <p className="font-semibold text-cream-100">Nenhum patrocinador cadastrado.</p>
-                        <p className="text-sm text-cream-300">Crie a primeira parceria para exibir logos na home e na pagina institucional.</p>
+        <>
+            <div className="space-y-3 md:hidden">
+                {data.map((item) => (
+                    <div key={item.id} className="rounded-2xl border border-navy-800 bg-navy-950/70 p-4 shadow-sm">
+                        <div className="flex items-start gap-3">
+                            <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-navy-700 bg-navy-950 shrink-0">
+                                {item.logoUrl ? (
+                                    <Image
+                                        src={item.logoUrl}
+                                        alt={item.name}
+                                        fill
+                                        unoptimized={shouldBypassNextImageOptimization(item.logoUrl)}
+                                        className="object-contain p-2"
+                                        sizes="56px"
+                                    />
+                                ) : (
+                                    <span className="text-xs font-bold text-cream-300">{item.name.slice(0, 2).toUpperCase()}</span>
+                                )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="line-clamp-2 font-semibold text-cream-100">{item.name}</p>
+                                <p className="mt-1 text-sm text-cream-300 break-all">{item.websiteUrl ?? "Sem link externo"}</p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <Badge variant={tierTone[item.tier]}>{item.tier}</Badge>
+                                    <Badge variant={item.featuredOnHome ? "accent" : "outline"}>
+                                        {item.featuredOnHome ? "EM DESTAQUE" : "SO PAGINA"}
+                                    </Badge>
+                                    <Badge variant={item.isActive ? "success" : "outline"}>
+                                        {item.isActive ? "ATIVO" : "INATIVO"}
+                                    </Badge>
+                                    <Badge variant="outline">Ordem {item.displayOrder}</Badge>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 flex gap-2">
+                            <Button variant="outline" className="flex-1" onClick={() => router.push(`/patrocinadores/${item.id}`)}>
+                                Editar
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                className="flex-1 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                                onClick={() => void handleDelete(item)}
+                                disabled={pendingDeleteId === item.id}
+                            >
+                                {pendingDeleteId === item.id ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                )}
+                                Excluir
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            }
-        />
+                ))}
+            </div>
+
+            <div className="hidden md:block">
+                <DataTable
+                    data={data}
+                    columns={columns}
+                    keyExtractor={(item) => item.id}
+                    emptyState={emptyState}
+                />
+            </div>
+        </>
     );
 }
