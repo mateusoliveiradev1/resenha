@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@resenha/db";
-import { championships, championshipParticipants } from "@resenha/db/schema";
+import { championships, championshipGroups, championshipParticipants } from "@resenha/db/schema";
 import {
     CreateChampionshipSchema,
     type CreateChampionshipInput,
@@ -56,15 +56,23 @@ async function ensureUniqueChampionshipSlug(baseValue: string, excludeId?: strin
     }
 }
 
-function revalidateChampionshipPages(id?: string) {
+async function revalidateChampionshipPages(id?: string) {
     revalidatePath("/");
     revalidatePath("/jogos");
     revalidatePath("/estatisticas");
     revalidatePath("/campeonatos");
-    revalidatePath("/campeonatos");
 
     if (id) {
-        revalidatePath(`/campeonatos/${id}`);
+        const championship = await db.query.championships.findFirst({
+            where: eq(championships.id, id),
+            columns: {
+                slug: true,
+            },
+        });
+
+        if (championship?.slug) {
+            revalidatePath(`/campeonatos/${championship.slug}`);
+        }
     }
 }
 
@@ -89,7 +97,7 @@ export async function createChampionship(data: CreateChampionshipInput) {
             endsAt: parsed.endsAt ? new Date(parsed.endsAt) : null,
         });
 
-        revalidateChampionshipPages();
+        await revalidateChampionshipPages();
         return { success: true };
     } catch (error: unknown) {
         return { success: false, error: getErrorMessage(error, "Nao foi possivel criar o campeonato.") };
@@ -127,7 +135,7 @@ export async function updateChampionship(id: string, data: UpdateChampionshipInp
 
         await db.update(championships).set(updatePayload).where(eq(championships.id, id));
 
-        revalidateChampionshipPages(id);
+        await revalidateChampionshipPages(id);
         return { success: true };
     } catch (error: unknown) {
         return { success: false, error: getErrorMessage(error, "Nao foi possivel atualizar o campeonato.") };
@@ -138,19 +146,47 @@ export async function saveChampionshipParticipants(data: SaveChampionshipPartici
     try {
         const parsed = SaveChampionshipParticipantsSchema.parse(data);
 
-        await db.delete(championshipParticipants).where(eq(championshipParticipants.championshipId, parsed.championshipId));
+        await db.transaction(async (tx) => {
+            await tx.delete(championshipParticipants).where(eq(championshipParticipants.championshipId, parsed.championshipId));
+            await tx.delete(championshipGroups).where(eq(championshipGroups.championshipId, parsed.championshipId));
 
-        if (parsed.clubIds.length > 0) {
-            await db.insert(championshipParticipants).values(
-                parsed.clubIds.map((clubId, index) => ({
-                    championshipId: parsed.championshipId,
-                    clubId,
-                    displayOrder: index,
-                }))
-            );
-        }
+            const clubGroupAssignments = new Map<string, string>();
 
-        revalidateChampionshipPages(parsed.championshipId);
+            if (parsed.groups.length > 0) {
+                const insertedGroups = await tx
+                    .insert(championshipGroups)
+                    .values(
+                        parsed.groups.map((group, index) => ({
+                            championshipId: parsed.championshipId,
+                            name: group.name.trim(),
+                            phaseLabel: group.phaseLabel?.trim() || "FASE DE GRUPOS",
+                            displayOrder: index,
+                        }))
+                    )
+                    .returning({
+                        id: championshipGroups.id,
+                    });
+
+                insertedGroups.forEach((group, index) => {
+                    parsed.groups[index]?.clubIds.forEach((clubId) => {
+                        clubGroupAssignments.set(clubId, group.id);
+                    });
+                });
+            }
+
+            if (parsed.clubIds.length > 0) {
+                await tx.insert(championshipParticipants).values(
+                    parsed.clubIds.map((clubId, index) => ({
+                        championshipId: parsed.championshipId,
+                        clubId,
+                        championshipGroupId: clubGroupAssignments.get(clubId) ?? null,
+                        displayOrder: index,
+                    }))
+                );
+            }
+        });
+
+        await revalidateChampionshipPages(parsed.championshipId);
         revalidatePath("/partidas");
         return { success: true };
     } catch (error: unknown) {
@@ -160,9 +196,19 @@ export async function saveChampionshipParticipants(data: SaveChampionshipPartici
 
 export async function deleteChampionship(id: string) {
     try {
+        const championship = await db.query.championships.findFirst({
+            where: eq(championships.id, id),
+            columns: {
+                slug: true,
+            },
+        });
+
         await db.delete(championships).where(eq(championships.id, id));
 
-        revalidateChampionshipPages(id);
+        await revalidateChampionshipPages();
+        if (championship?.slug) {
+            revalidatePath(`/campeonatos/${championship.slug}`);
+        }
         revalidatePath("/partidas");
         return { success: true };
     } catch (error: unknown) {

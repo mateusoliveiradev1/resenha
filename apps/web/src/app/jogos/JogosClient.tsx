@@ -11,8 +11,11 @@ const statusOrder: Record<Match["status"], number> = {
     FINISHED: 2
 };
 
+const MATCHES_PAGE_SIZE = 8;
+
 export function JogosClient({ matches }: { matches: Match[] }) {
     const [activeType, setActiveType] = React.useState("TODOS");
+    const [currentPage, setCurrentPage] = React.useState(1);
 
     const filteredMatches = React.useMemo(() => {
         return [...matches]
@@ -35,6 +38,19 @@ export function JogosClient({ matches }: { matches: Match[] }) {
             });
     }, [activeType, matches]);
 
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [activeType]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredMatches.length / MATCHES_PAGE_SIZE));
+    React.useEffect(() => {
+        setCurrentPage((currentValue) => Math.min(currentValue, totalPages));
+    }, [totalPages]);
+    const paginatedMatches = filteredMatches.slice(
+        (currentPage - 1) * MATCHES_PAGE_SIZE,
+        currentPage * MATCHES_PAGE_SIZE,
+    );
+
     return (
         <div className="min-h-screen py-12 lg:py-20">
             <Container>
@@ -50,11 +66,43 @@ export function JogosClient({ matches }: { matches: Match[] }) {
                 <MatchFilters activeTab={activeType} onChange={setActiveType} />
 
                 {filteredMatches.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        {filteredMatches.map((match) => (
-                            <MatchCard key={match.id} match={match} />
-                        ))}
-                    </div>
+                    <>
+                        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-sm text-cream-300">
+                                {filteredMatches.length} jogo(s) encontrados
+                            </p>
+                            <p className="text-sm text-cream-300">
+                                Pagina {currentPage} de {totalPages}
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                            {paginatedMatches.map((match) => (
+                                <MatchCard key={match.id} match={match} />
+                            ))}
+                        </div>
+
+                        {totalPages > 1 && (
+                            <div className="mt-8 flex items-center justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((currentValue) => Math.max(1, currentValue - 1))}
+                                    disabled={currentPage === 1}
+                                    className="rounded-full border border-navy-700 px-4 py-2 text-sm font-medium text-cream-100 transition-colors hover:border-blue-500/40 hover:text-blue-200 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Pagina anterior
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((currentValue) => Math.min(totalPages, currentValue + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-200 transition-colors hover:border-blue-400/50 hover:bg-blue-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Proxima pagina
+                                </button>
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <div className="rounded-3xl border border-dashed border-navy-800 bg-navy-900/20 px-6 py-16 text-center">
                         <h2 className="font-display text-2xl font-bold text-cream-100">Nenhuma partida encontrada</h2>

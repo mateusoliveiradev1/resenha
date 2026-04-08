@@ -30,10 +30,44 @@ export const CreateChampionshipSchema = z.object({
 
 export const UpdateChampionshipSchema = CreateChampionshipSchema.partial();
 
-export const SaveChampionshipParticipantsSchema = z.object({
-    championshipId: z.string().uuid(),
+export const ChampionshipGroupAssignmentSchema = z.object({
+    name: z.string().trim().min(1, "Nome do grupo e obrigatorio"),
+    phaseLabel: optionalTextField,
     clubIds: z.array(z.string().uuid()).default([]),
 });
+
+export const SaveChampionshipParticipantsSchema = z
+    .object({
+        championshipId: z.string().uuid(),
+        clubIds: z.array(z.string().uuid()).default([]),
+        groups: z.array(ChampionshipGroupAssignmentSchema).default([]),
+    })
+    .superRefine((data, context) => {
+        const selectedClubIds = new Set(data.clubIds);
+        const assignedClubIds = new Set<string>();
+
+        data.groups.forEach((group, groupIndex) => {
+            group.clubIds.forEach((clubId, clubIndex) => {
+                if (!selectedClubIds.has(clubId)) {
+                    context.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        path: ["groups", groupIndex, "clubIds", clubIndex],
+                        message: "O clube precisa estar selecionado entre os participantes.",
+                    });
+                }
+
+                if (assignedClubIds.has(clubId)) {
+                    context.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        path: ["groups", groupIndex, "clubIds", clubIndex],
+                        message: "O clube nao pode ser atribuido a mais de um grupo.",
+                    });
+                }
+
+                assignedClubIds.add(clubId);
+            });
+        });
+    });
 
 export type CreateChampionshipInput = z.infer<typeof CreateChampionshipSchema>;
 export type UpdateChampionshipInput = z.infer<typeof UpdateChampionshipSchema>;

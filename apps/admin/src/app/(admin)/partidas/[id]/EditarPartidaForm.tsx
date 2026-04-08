@@ -14,6 +14,7 @@ import { ArrowLeft, Building2, Plus, Save, Trash2, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { updateMatch, upsertMatchStats } from "@/actions/matches";
+import { formatDateTimeLocalValue, parseDateTimeLocalToIso } from "@/lib/dateTimeLocal";
 
 type MatchData = {
     id: string;
@@ -70,20 +71,31 @@ type ChampionshipOption = {
     name: string;
     seasonLabel?: string | null;
     status: "PLANNED" | "LIVE" | "FINISHED";
+    format: "LEAGUE" | "GROUP_STAGE" | "KNOCKOUT" | "HYBRID";
+};
+
+type ChampionshipGroupOption = {
+    id: string;
+    championshipId: string;
+    name: string;
 };
 
 export function EditarPartidaForm({
     match,
     stats,
     players,
+    canEditPlayerStats,
     clubs,
     championships,
+    groups,
 }: {
     match: MatchData;
     stats: MatchStatsData[];
     players: PlayerOption[];
+    canEditPlayerStats: boolean;
     clubs: ClubOption[];
     championships: ChampionshipOption[];
+    groups: ChampionshipGroupOption[];
 }) {
     const router = useRouter();
     const [activeTab, setActiveTab] = React.useState("GERAL");
@@ -101,7 +113,7 @@ export function EditarPartidaForm({
     } = useForm<UpdateMatchInput>({
         resolver: zodResolver(UpdateMatchSchema) as Resolver<UpdateMatchInput>,
         defaultValues: {
-            date: new Date(match.date).toISOString().slice(0, 16),
+            date: formatDateTimeLocalValue(match.date),
             opponent: match.opponent || "",
             matchCategory: match.matchCategory || "FRIENDLY",
             homeClubId: match.homeClubId ?? null,
@@ -147,6 +159,11 @@ export function EditarPartidaForm({
     const { fields, append, remove } = useFieldArray({ control, name: "stats" });
     const matchCategory = watch("matchCategory");
     const autoStatus = watch("autoStatus");
+    const selectedChampionshipId = watch("championshipId");
+    const availableGroups = React.useMemo(
+        () => groups.filter((group) => group.championshipId === selectedChampionshipId),
+        [groups, selectedChampionshipId]
+    );
 
     React.useEffect(() => {
         if (matchCategory === "FRIENDLY") {
@@ -158,13 +175,23 @@ export function EditarPartidaForm({
         }
     }, [matchCategory, setValue]);
 
+    React.useEffect(() => {
+        if (matchCategory !== "CHAMPIONSHIP") {
+            return;
+        }
+
+        if (availableGroups.length === 0) {
+            setValue("championshipGroupId", null);
+        }
+    }, [availableGroups.length, matchCategory, setValue]);
+
     const onMatchSubmit = async (data: UpdateMatchInput) => {
         setIsSavingGeneral(true);
         setGeneralFeedback(null);
 
         const result = await updateMatch(match.id, {
             ...data,
-            date: data.date ? new Date(data.date).toISOString() : undefined,
+            date: data.date ? (parseDateTimeLocalToIso(data.date) ?? data.date) : undefined,
         });
 
         setIsSavingGeneral(false);
@@ -213,10 +240,14 @@ export function EditarPartidaForm({
             </div>
 
             <Tabs
-                tabs={[
-                    { id: "GERAL", label: "Dados Gerais" },
-                    { id: "STATS", label: "Estatisticas de Jogadores" }
-                ]}
+                tabs={
+                    canEditPlayerStats
+                        ? [
+                            { id: "GERAL", label: "Dados Gerais" },
+                            { id: "STATS", label: "Estatisticas de Jogadores" }
+                        ]
+                        : [{ id: "GERAL", label: "Dados Gerais" }]
+                }
                 activeId={activeTab}
                 onChange={setActiveTab}
                 variant="underline"
@@ -335,6 +366,31 @@ export function EditarPartidaForm({
                                             error={!!matchErrs.location}
                                             errorMessage={matchErrs.location?.message}
                                         />
+
+                                        {matchCategory === "CHAMPIONSHIP" && availableGroups.length > 0 && (
+                                            <div className="space-y-2 sm:col-span-2">
+                                                <label htmlFor="championshipGroupId" className="text-sm font-medium leading-none text-cream-100">
+                                                    Grupo
+                                                </label>
+                                                <select
+                                                    id="championshipGroupId"
+                                                    {...registerMatch("championshipGroupId")}
+                                                    className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                >
+                                                    <option value="">Selecione o grupo</option>
+                                                    {availableGroups.map((group) => (
+                                                        <option key={group.id} value={group.id}>
+                                                            {group.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {matchErrs.championshipGroupId?.message && (
+                                                    <p className="text-[0.8rem] font-medium text-red-500">
+                                                        {matchErrs.championshipGroupId.message}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
 
                                         {matchCategory === "CHAMPIONSHIP" && (
                                             <>
@@ -531,6 +587,13 @@ export function EditarPartidaForm({
                                             </span>
                                         </span>
                                     </label>
+
+                                    {!canEditPlayerStats && (
+                                        <div className="rounded-2xl border border-gold-500/20 bg-gold-500/10 px-4 py-4 text-sm text-gold-100">
+                                            Estatisticas de jogadores ficam disponiveis apenas para partidas do Resenha.
+                                            Jogos gerais entre outros clubes usam somente placar, status e contexto do campeonato.
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="sm:col-span-2">
@@ -563,7 +626,7 @@ export function EditarPartidaForm({
                     </form>
                 )}
 
-                {activeTab === "STATS" && (
+                {canEditPlayerStats && activeTab === "STATS" && (
                     <form onSubmit={submitStats(onStatsSubmit)}>
                         <Card className="bg-navy-900 border-navy-800">
                             <CardContent className="p-6 space-y-6">
