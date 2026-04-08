@@ -10,6 +10,7 @@ import { Button, Card, CardContent, FormField } from "@resenha/ui";
 import { CreateChampionshipSchema, type CreateChampionshipInput } from "@resenha/validators";
 import { ArrowLeft, Save } from "lucide-react";
 import { createChampionship } from "@/actions/championships";
+import { parseDateTimeLocalToIso } from "@/lib/dateTimeLocal";
 
 export default function NovoCampeonatoPage() {
     const router = useRouter();
@@ -35,7 +36,11 @@ export default function NovoCampeonatoPage() {
 
     const onSubmit = async (data: CreateChampionshipInput) => {
         setIsSubmitting(true);
-        const result = await createChampionship(data);
+        const result = await createChampionship({
+            ...data,
+            startsAt: parseDateTimeLocalToIso(data.startsAt) ?? data.startsAt,
+            endsAt: parseDateTimeLocalToIso(data.endsAt) ?? data.endsAt,
+        });
         setIsSubmitting(false);
 
         if (result.success) {

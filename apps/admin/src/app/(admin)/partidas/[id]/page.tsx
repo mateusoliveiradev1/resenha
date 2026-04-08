@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { db } from "@resenha/db";
-import { championships, clubs, matches, matchStats, players } from "@resenha/db/schema";
+import { db, presentMatch } from "@resenha/db";
+import { championshipGroups, championships, clubs, matches, matchStats, players } from "@resenha/db/schema";
 import { asc, desc, eq } from "drizzle-orm";
 import { EditarPartidaForm } from "./EditarPartidaForm";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function EditarPartidaPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
 
-    const [matchData, statsData, playersData, clubsData, championshipsData] = await Promise.all([
+    const [matchData, statsData, playersData, clubsData, championshipsData, groupRows] = await Promise.all([
         db.query.matches.findFirst({
             where: eq(matches.id, id),
         }),
@@ -27,17 +27,24 @@ export default async function EditarPartidaPage({ params }: { params: Promise<{ 
         db.query.championships.findMany({
             orderBy: [desc(championships.startsAt), asc(championships.name)],
         }),
+        db.query.championshipGroups.findMany({
+            orderBy: [asc(championshipGroups.displayOrder), asc(championshipGroups.name)],
+        }),
     ]);
 
     if (!matchData) {
         notFound();
     }
 
+    const presentedMatch = presentMatch(matchData, clubsData);
+    const canEditPlayerStats = presentedMatch.isResenhaMatch;
+
     return (
         <EditarPartidaForm
             match={matchData}
             stats={statsData}
             players={playersData}
+            canEditPlayerStats={canEditPlayerStats}
             clubs={clubsData.map((club) => ({
                 id: club.id,
                 name: club.name,
@@ -49,6 +56,12 @@ export default async function EditarPartidaPage({ params }: { params: Promise<{ 
                 name: championship.name,
                 seasonLabel: championship.seasonLabel,
                 status: championship.status,
+                format: championship.format,
+            }))}
+            groups={groupRows.map((group) => ({
+                id: group.id,
+                championshipId: group.championshipId,
+                name: group.name,
             }))}
         />
     );

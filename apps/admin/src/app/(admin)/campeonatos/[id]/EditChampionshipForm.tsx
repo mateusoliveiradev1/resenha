@@ -15,6 +15,7 @@ import {
 } from "@resenha/validators";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { deleteChampionship, saveChampionshipParticipants, updateChampionship } from "@/actions/championships";
+import { formatDateTimeLocalValue, parseDateTimeLocalToIso } from "@/lib/dateTimeLocal";
 
 interface ChampionshipRecord {
     id: string;
@@ -41,6 +42,12 @@ interface ClubOption {
     isResenha: boolean;
 }
 
+interface ChampionshipGroupOption {
+    id: string;
+    name: string;
+    phaseLabel: string;
+}
+
 interface StandingPreviewRow {
     position: number;
     clubName: string;
@@ -49,16 +56,34 @@ interface StandingPreviewRow {
     goalDifference: number;
 }
 
+interface EditableGroupState {
+    key: string;
+    name: string;
+    phaseLabel: string;
+}
+
+const GROUP_PHASE_DEFAULT = "FASE DE GRUPOS";
+
+const createLocalGroup = (index: number): EditableGroupState => ({
+    key: `local-group-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${index}`,
+    name: `Grupo ${String.fromCharCode(65 + (index % 26))}`,
+    phaseLabel: GROUP_PHASE_DEFAULT,
+});
+
 export function EditChampionshipForm({
     championship,
     clubs,
     participantIds,
+    participantGroups,
+    groups,
     standingsPreview,
     totalMatches
 }: {
     championship: ChampionshipRecord;
     clubs: ClubOption[];
     participantIds: string[];
+    participantGroups: Record<string, string | null>;
+    groups: ChampionshipGroupOption[];
     standingsPreview: StandingPreviewRow[];
     totalMatches: number;
 }) {
@@ -71,7 +96,7 @@ export function EditChampionshipForm({
     const [selectedClubIds, setSelectedClubIds] = React.useState<string[]>(participantIds);
     type ChampionshipFormValues = z.input<typeof UpdateChampionshipSchema>;
 
-    const { register, handleSubmit, formState: { errors } } = useForm<ChampionshipFormValues, unknown, UpdateChampionshipInput>({
+    const { register, watch, handleSubmit, formState: { errors } } = useForm<ChampionshipFormValues, unknown, UpdateChampionshipInput>({
         resolver: zodResolver(UpdateChampionshipSchema),
         defaultValues: {
             name: championship.name,
@@ -85,8 +110,8 @@ export function EditChampionshipForm({
             pointsPerDraw: championship.pointsPerDraw,
             pointsPerLoss: championship.pointsPerLoss,
             showStandings: championship.showStandings,
-            startsAt: championship.startsAt ? new Date(championship.startsAt).toISOString().slice(0, 16) : "",
-            endsAt: championship.endsAt ? new Date(championship.endsAt).toISOString().slice(0, 16) : "",
+            startsAt: formatDateTimeLocalValue(championship.startsAt),
+            endsAt: formatDateTimeLocalValue(championship.endsAt),
         },
     });
 
@@ -94,10 +119,45 @@ export function EditChampionshipForm({
         () => [...clubs].sort((left, right) => Number(right.isResenha) - Number(left.isResenha) || left.name.localeCompare(right.name, "pt-BR")),
         [clubs]
     );
+    const clubsById = React.useMemo(() => new Map(clubs.map((club) => [club.id, club])), [clubs]);
+    const [groupConfigs, setGroupConfigs] = React.useState<EditableGroupState[]>(
+        groups.length > 0
+            ? groups.map((group) => ({
+                key: group.id,
+                name: group.name,
+                phaseLabel: group.phaseLabel,
+            }))
+            : []
+    );
+    const [clubGroupAssignments, setClubGroupAssignments] = React.useState<Record<string, string>>(() => {
+        const nextValue: Record<string, string> = {};
+
+        participantIds.forEach((clubId) => {
+            const groupId = participantGroups[clubId];
+
+            if (groupId) {
+                nextValue[clubId] = groupId;
+            }
+        });
+
+        return nextValue;
+    });
+    const championshipFormat = watch("format") ?? championship.format;
+    const isGroupedFormat = championshipFormat === "GROUP_STAGE" || championshipFormat === "HYBRID";
+
+    React.useEffect(() => {
+        if (isGroupedFormat && groupConfigs.length === 0) {
+            setGroupConfigs([createLocalGroup(0)]);
+        }
+    }, [groupConfigs.length, isGroupedFormat]);
 
     const onSubmit = async (data: UpdateChampionshipInput) => {
         setIsSubmitting(true);
-        const result = await updateChampionship(championship.id, data);
+        const result = await updateChampionship(championship.id, {
+            ...data,
+            startsAt: parseDateTimeLocalToIso(data.startsAt) ?? data.startsAt,
+            endsAt: parseDateTimeLocalToIso(data.endsAt) ?? data.endsAt,
+        });
         setIsSubmitting(false);
 
         if (result.success) {
@@ -110,20 +170,99 @@ export function EditChampionshipForm({
     };
 
     const toggleParticipant = (clubId: string) => {
-        setSelectedClubIds((currentValue) =>
-            currentValue.includes(clubId)
-                ? currentValue.filter((value) => value !== clubId)
-                : [...currentValue, clubId]
+        setSelectedClubIds((currentValue) => {
+            const isRemoving = currentValue.includes(clubId);
+
+            if (isRemoving) {
+                setClubGroupAssignments((currentAssignments) => {
+                    const nextAssignments = { ...currentAssignments };
+                    delete nextAssignments[clubId];
+                    return nextAssignments;
+                });
+
+                return currentValue.filter((value) => value !== clubId);
+            }
+
+            return [...currentValue, clubId];
+        });
+    };
+
+    const addGroup = () => {
+        setGroupConfigs((currentValue) => [...currentValue, createLocalGroup(currentValue.length)]);
+    };
+
+    const updateGroupField = (groupKey: string, field: "name" | "phaseLabel", value: string) => {
+        setGroupConfigs((currentValue) =>
+            currentValue.map((group) =>
+                group.key === groupKey
+                    ? {
+                        ...group,
+                        [field]: value,
+                    }
+                    : group
+            )
         );
+    };
+
+    const removeGroup = (groupKey: string) => {
+        setGroupConfigs((currentValue) => currentValue.filter((group) => group.key !== groupKey));
+        setClubGroupAssignments((currentAssignments) =>
+            Object.fromEntries(
+                Object.entries(currentAssignments).filter(([, assignedGroupKey]) => assignedGroupKey !== groupKey)
+            )
+        );
+    };
+
+    const assignClubToGroup = (clubId: string, groupKey: string) => {
+        setClubGroupAssignments((currentAssignments) => {
+            if (!groupKey) {
+                const nextAssignments = { ...currentAssignments };
+                delete nextAssignments[clubId];
+                return nextAssignments;
+            }
+
+            return {
+                ...currentAssignments,
+                [clubId]: groupKey,
+            };
+        });
     };
 
     const handleSaveParticipants = async () => {
         setIsSavingParticipants(true);
         setParticipantsFeedback(null);
 
+        if (isGroupedFormat) {
+            const activeGroups = groupConfigs.filter((group) => group.name.trim());
+
+            if (activeGroups.length === 0) {
+                setIsSavingParticipants(false);
+                setParticipantsFeedback("Crie ao menos um grupo antes de salvar os participantes.");
+                return;
+            }
+
+            const unassignedClubs = selectedClubIds.filter((clubId) => !clubGroupAssignments[clubId]);
+
+            if (unassignedClubs.length > 0) {
+                setIsSavingParticipants(false);
+                setParticipantsFeedback("Atribua todos os clubes selecionados a um grupo antes de salvar.");
+                return;
+            }
+        }
+
         const payload: SaveChampionshipParticipantsInput = SaveChampionshipParticipantsSchema.parse({
             championshipId: championship.id,
-            clubIds: selectedClubIds
+            clubIds: selectedClubIds,
+            groups: isGroupedFormat
+                ? groupConfigs
+                    .filter((group) => group.name.trim())
+                    .map((group) => ({
+                        name: group.name.trim(),
+                        phaseLabel: group.phaseLabel.trim() || GROUP_PHASE_DEFAULT,
+                        clubIds: selectedClubIds.filter((clubId) => clubGroupAssignments[clubId] === group.key),
+                    }))
+                    .filter((group) => group.clubIds.length > 0)
+                : [],
         });
         const result = await saveChampionshipParticipants(payload);
         setIsSavingParticipants(false);
@@ -277,7 +416,9 @@ export function EditChampionshipForm({
                             <div>
                                 <h3 className="font-display text-xl font-bold text-cream-100">Participantes</h3>
                                 <p className="mt-2 text-sm text-cream-300">
-                                    Selecione os clubes desta competicao. Depois disso, os jogos cadastrados em Partidas passam a alimentar a tabela automaticamente.
+                                    {isGroupedFormat
+                                        ? "Selecione os clubes desta competicao, monte os grupos e deixe os jogos alimentarem cada tabela automaticamente."
+                                        : "Selecione os clubes desta competicao. Depois disso, os jogos cadastrados em Partidas passam a alimentar a tabela automaticamente."}
                                 </p>
                             </div>
 
@@ -306,7 +447,14 @@ export function EditChampionshipForm({
                                                 <p className="font-semibold text-cream-100">{club.name}</p>
                                                 <p className="mt-1 text-xs uppercase tracking-[0.18em] text-cream-300/70">{club.shortName}</p>
                                             </div>
-                                            {club.isResenha && <Badge variant="gold">Resenha</Badge>}
+                                            <div className="flex flex-wrap items-center justify-end gap-2">
+                                                {isGroupedFormat && isSelected && clubGroupAssignments[club.id] && (
+                                                    <Badge variant="outline">
+                                                        {groupConfigs.find((group) => group.key === clubGroupAssignments[club.id])?.name ?? "Grupo"}
+                                                    </Badge>
+                                                )}
+                                                {club.isResenha && <Badge variant="gold">Resenha</Badge>}
+                                            </div>
                                         </div>
                                         <p className="mt-4 text-xs text-cream-300/70">
                                             {isSelected ? "Selecionado para a competicao." : club.isActive ? "Disponivel para entrar na competicao." : "Clube inativo na base."}
@@ -315,6 +463,120 @@ export function EditChampionshipForm({
                                 );
                             })}
                         </div>
+
+                        {isGroupedFormat && (
+                            <>
+                                <div className="rounded-2xl border border-navy-800 bg-navy-950/40 p-4">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p className="text-xs uppercase tracking-[0.22em] text-cream-300/60">Estrutura de grupos</p>
+                                            <p className="mt-2 text-sm text-cream-300">
+                                                Crie os grupos da fase inicial. A ordem das tabelas e puxada daqui para o site.
+                                            </p>
+                                        </div>
+                                        <Button type="button" variant="secondary" onClick={addGroup}>
+                                            Adicionar grupo
+                                        </Button>
+                                    </div>
+
+                                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                                        {groupConfigs.map((group, index) => (
+                                            <div key={group.key} className="rounded-2xl border border-navy-800 bg-navy-900/70 p-4">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <Badge variant="outline">{index + 1}o grupo</Badge>
+                                                    {groupConfigs.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeGroup(group.key)}
+                                                            className="text-sm font-medium text-red-300 transition-colors hover:text-red-200"
+                                                        >
+                                                            Remover
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-4 space-y-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium leading-none text-cream-100">Nome do grupo</label>
+                                                        <input
+                                                            value={group.name}
+                                                            onChange={(event) => updateGroupField(group.key, "name", event.target.value)}
+                                                            className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                            placeholder={`Grupo ${String.fromCharCode(65 + (index % 26))}`}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium leading-none text-cream-100">Fase exibida</label>
+                                                        <input
+                                                            value={group.phaseLabel}
+                                                            onChange={(event) => updateGroupField(group.key, "phaseLabel", event.target.value)}
+                                                            className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                            placeholder={GROUP_PHASE_DEFAULT}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-navy-800 bg-navy-950/40 p-4">
+                                    <div>
+                                        <p className="text-xs uppercase tracking-[0.22em] text-cream-300/60">Distribuicao dos clubes</p>
+                                        <p className="mt-2 text-sm text-cream-300">
+                                            Cada clube selecionado precisa entrar em um grupo para a tabela publica ficar 100% automatica.
+                                        </p>
+                                    </div>
+
+                                    {selectedClubIds.length > 0 ? (
+                                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                                            {selectedClubIds.map((clubId) => {
+                                                const club = clubsById.get(clubId);
+
+                                                if (!club) {
+                                                    return null;
+                                                }
+
+                                                return (
+                                                    <div key={clubId} className="rounded-2xl border border-navy-800 bg-navy-900/70 p-4">
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div>
+                                                                <p className="font-semibold text-cream-100">{club.name}</p>
+                                                                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-cream-300/70">
+                                                                    {club.shortName}
+                                                                </p>
+                                                            </div>
+                                                            {club.isResenha && <Badge variant="gold">Resenha</Badge>}
+                                                        </div>
+
+                                                        <div className="mt-4 space-y-2">
+                                                            <label className="text-sm font-medium leading-none text-cream-100">Grupo</label>
+                                                            <select
+                                                                value={clubGroupAssignments[clubId] ?? ""}
+                                                                onChange={(event) => assignClubToGroup(clubId, event.target.value)}
+                                                                className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                            >
+                                                                <option value="">Selecione o grupo</option>
+                                                                {groupConfigs.map((group) => (
+                                                                    <option key={group.key} value={group.key}>
+                                                                        {group.name || "Grupo sem nome"}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="mt-4 rounded-2xl border border-dashed border-navy-800 bg-navy-900/40 px-4 py-6 text-sm text-cream-300">
+                                            Selecione os clubes primeiro para distribuir nos grupos.
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
 
                         <div className="rounded-2xl border border-navy-800 bg-navy-950/40 p-4">
                             <div className="flex items-center justify-between gap-3">

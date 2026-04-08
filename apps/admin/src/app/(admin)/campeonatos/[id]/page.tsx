@@ -60,6 +60,14 @@ export default async function EditChampionshipPage({ params }: { params: Promise
                 isResenha: club.isResenha,
             }))}
             participantIds={participantRows.map((item) => item.clubId)}
+            participantGroups={Object.fromEntries(
+                participantRows.map((item) => [item.clubId, item.championshipGroupId ?? null])
+            )}
+            groups={groupRows.map((group) => ({
+                id: group.id,
+                name: group.name,
+                phaseLabel: group.phaseLabel,
+            }))}
             standingsPreview={standingsPreview.map((row) => ({
                 position: row.position,
                 clubName: row.clubName,

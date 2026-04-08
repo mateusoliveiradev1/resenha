@@ -1,6 +1,6 @@
 "use server";
 
-import { db, getDefaultDurationMinutes } from "@resenha/db";
+import { db, getDefaultDurationMinutes, presentMatch } from "@resenha/db";
 import { championshipGroups, championships, clubs, matchStats, matches } from "@resenha/db/schema";
 import {
     CreateMatchSchema,
@@ -516,6 +516,20 @@ export async function upsertMatchStatsAction(data: UpsertMatchStatsInput) {
         };
 
         const parsed = UpsertMatchStatsSchema.parse(cleanedPayload);
+        const [matchRecord, clubsData] = await Promise.all([
+            db.query.matches.findFirst({
+                where: eq(matches.id, parsed.matchId),
+            }),
+            db.query.clubs.findMany(),
+        ]);
+
+        if (!matchRecord) {
+            throw new Error("Partida nao encontrada.");
+        }
+
+        if (!presentMatch(matchRecord, clubsData).isResenhaMatch) {
+            throw new Error("Estatisticas de jogadores so podem ser salvas em partidas do Resenha.");
+        }
 
         await db.delete(matchStats).where(eq(matchStats.matchId, parsed.matchId));
 

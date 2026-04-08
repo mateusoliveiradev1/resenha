@@ -9,6 +9,7 @@ import { ArrowLeft, Building2, Save, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createMatch } from "@/actions/matches";
+import { parseDateTimeLocalToIso } from "@/lib/dateTimeLocal";
 
 type ClubOption = {
     id: string;
@@ -23,6 +24,13 @@ type ChampionshipOption = {
     name: string;
     seasonLabel?: string | null;
     status: "PLANNED" | "LIVE" | "FINISHED";
+    format: "LEAGUE" | "GROUP_STAGE" | "KNOCKOUT" | "HYBRID";
+};
+
+type ChampionshipGroupOption = {
+    id: string;
+    championshipId: string;
+    name: string;
 };
 
 const DEFAULT_DURATION_BY_TYPE = {
@@ -33,9 +41,11 @@ const DEFAULT_DURATION_BY_TYPE = {
 export function NovaPartidaForm({
     clubs,
     championships,
+    groups,
 }: {
     clubs: ClubOption[];
     championships: ChampionshipOption[];
+    groups: ChampionshipGroupOption[];
 }) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -77,6 +87,11 @@ export function NovaPartidaForm({
     const matchCategory = watch("matchCategory");
     const matchType = watch("type");
     const autoStatus = watch("autoStatus");
+    const selectedChampionshipId = watch("championshipId");
+    const availableGroups = React.useMemo(
+        () => groups.filter((group) => group.championshipId === selectedChampionshipId),
+        [groups, selectedChampionshipId]
+    );
 
     React.useEffect(() => {
         if (matchCategory === "FRIENDLY") {
@@ -92,13 +107,23 @@ export function NovaPartidaForm({
         setValue("durationMinutes", DEFAULT_DURATION_BY_TYPE[matchType]);
     }, [matchType, setValue]);
 
+    React.useEffect(() => {
+        if (matchCategory !== "CHAMPIONSHIP") {
+            return;
+        }
+
+        if (availableGroups.length === 0) {
+            setValue("championshipGroupId", null);
+        }
+    }, [availableGroups.length, matchCategory, setValue]);
+
     const onSubmit = async (data: CreateMatchInput) => {
         setIsSubmitting(true);
         setFormFeedback(null);
 
         const result = await createMatch({
             ...data,
-            date: new Date(data.date).toISOString(),
+            date: parseDateTimeLocalToIso(data.date) ?? data.date,
         });
 
         setIsSubmitting(false);
@@ -240,6 +265,31 @@ export function NovaPartidaForm({
                                     error={!!errors.location}
                                     errorMessage={errors.location?.message}
                                 />
+
+                                {matchCategory === "CHAMPIONSHIP" && availableGroups.length > 0 && (
+                                    <div className="space-y-2 sm:col-span-2">
+                                        <label htmlFor="championshipGroupId" className="text-sm font-medium leading-none text-cream-100">
+                                            Grupo
+                                        </label>
+                                        <select
+                                            id="championshipGroupId"
+                                            {...register("championshipGroupId")}
+                                            className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                        >
+                                            <option value="">Selecione o grupo</option>
+                                            {availableGroups.map((group) => (
+                                                <option key={group.id} value={group.id}>
+                                                    {group.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.championshipGroupId?.message && (
+                                            <p className="text-[0.8rem] font-medium text-red-500">
+                                                {errors.championshipGroupId.message}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
 
                                 {matchCategory === "CHAMPIONSHIP" && (
                                     <>
