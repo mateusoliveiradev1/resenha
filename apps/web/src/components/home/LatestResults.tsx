@@ -13,6 +13,9 @@ export interface MatchResult {
     date: Date;
     scoreHome: number;
     scoreAway: number;
+    tiebreakHome?: number | null;
+    tiebreakAway?: number | null;
+    competitionName?: string | null;
 }
 
 export function LatestResults({ results }: { results?: MatchResult[] }) {
@@ -41,8 +44,22 @@ export function LatestResults({ results }: { results?: MatchResult[] }) {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {results.map((match) => {
-                        const isWin = match.scoreHome > match.scoreAway;
-                        const isDraw = match.scoreHome === match.scoreAway;
+                        const decidingHome =
+                            match.scoreHome === match.scoreAway &&
+                            match.tiebreakHome != null &&
+                            match.tiebreakAway != null &&
+                            match.tiebreakHome !== match.tiebreakAway
+                                ? match.tiebreakHome
+                                : match.scoreHome;
+                        const decidingAway =
+                            match.scoreHome === match.scoreAway &&
+                            match.tiebreakHome != null &&
+                            match.tiebreakAway != null &&
+                            match.tiebreakHome !== match.tiebreakAway
+                                ? match.tiebreakAway
+                                : match.scoreAway;
+                        const isWin = decidingHome > decidingAway;
+                        const isDraw = decidingHome === decidingAway;
 
                         const badgeVariant = isWin ? "success" : isDraw ? "warning" : "danger";
                         const badgeLabel = isWin ? "VITÓRIA" : isDraw ? "EMPATE" : "DERROTA";
@@ -57,6 +74,11 @@ export function LatestResults({ results }: { results?: MatchResult[] }) {
                                             {match.date.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" }).replace(" de ", " ")}
                                         </span>
                                     </div>
+                                    {match.competitionName && (
+                                        <span className="hidden max-w-[45%] truncate text-[10px] uppercase tracking-[0.18em] text-cream-300/55 sm:block">
+                                            {match.competitionName}
+                                        </span>
+                                    )}
                                     <Badge variant={badgeVariant} className="text-[10px] px-2 py-0.5 shadow-sm">
                                         {badgeLabel}
                                     </Badge>
@@ -79,14 +101,21 @@ export function LatestResults({ results }: { results?: MatchResult[] }) {
                                     </div>
 
                                     {/* Score */}
-                                    <div className="flex items-center justify-center px-4 sm:px-5 bg-navy-950 py-3 rounded-xl border border-navy-800 shadow-[inset_0_2px_8px_rgba(0,0,0,0.5)] z-10 shrink-0">
-                                        <span className="font-display text-3xl sm:text-4xl font-bold text-cream-100 min-w-[1ch] text-center drop-shadow-sm">
-                                            {match.scoreHome}
-                                        </span>
-                                        <span className="mx-2 sm:mx-3 text-navy-600 font-black">-</span>
-                                        <span className="font-display text-3xl sm:text-4xl font-bold text-cream-100 min-w-[1ch] text-center drop-shadow-sm">
-                                            {match.scoreAway}
-                                        </span>
+                                    <div className="z-10 shrink-0">
+                                        <div className="flex items-center justify-center rounded-xl border border-navy-800 bg-navy-950 px-4 py-3 shadow-[inset_0_2px_8px_rgba(0,0,0,0.5)] sm:px-5">
+                                            <span className="min-w-[1ch] text-center font-display text-3xl font-bold text-cream-100 drop-shadow-sm sm:text-4xl">
+                                                {match.scoreHome}
+                                            </span>
+                                            <span className="mx-2 font-black text-navy-600 sm:mx-3">-</span>
+                                            <span className="min-w-[1ch] text-center font-display text-3xl font-bold text-cream-100 drop-shadow-sm sm:text-4xl">
+                                                {match.scoreAway}
+                                            </span>
+                                        </div>
+                                        {match.tiebreakHome != null && match.tiebreakAway != null && (
+                                            <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-cream-300/75">
+                                                Pen. {match.tiebreakHome} - {match.tiebreakAway}
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Away (Opponent) */}

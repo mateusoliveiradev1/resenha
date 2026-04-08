@@ -7,6 +7,7 @@ const MAX_UPLOAD_SIZE_BYTES = 3 * 1024 * 1024;
 
 const uploadTargets = {
     opponents: { directory: "opponents", prefix: "opponent" },
+    clubs: { directory: "clubs", prefix: "club" },
     players: { directory: "players", prefix: "player" },
     staff: { directory: "staff", prefix: "staff" },
     sponsors: { directory: "sponsors", prefix: "sponsor" },

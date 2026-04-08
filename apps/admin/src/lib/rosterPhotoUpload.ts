@@ -1,4 +1,4 @@
-export type RosterPhotoEntity = "players" | "staff" | "sponsors" | "posts" | "gallery" | "opponents";
+export type RosterPhotoEntity = "players" | "staff" | "sponsors" | "posts" | "gallery" | "opponents" | "clubs";
 
 interface UploadRosterPhotoResponse {
     success: boolean;
@@ -53,6 +53,16 @@ export const uploadPresets: Record<RosterPhotoEntity, UploadPreset> = {
         fit: "inside",
         label: "ate 1400px",
         helperText: "Escudos de adversarios sao aparados automaticamente para ficarem mais limpos e leves.",
+        maxScale: 2,
+        trimWhitespace: true
+    },
+    clubs: {
+        width: 1400,
+        height: 1400,
+        quality: 0.92,
+        fit: "inside",
+        label: "ate 1400px",
+        helperText: "Escudos dos clubes sao aparados automaticamente para facilitar o reaproveitamento em jogos e campeonatos.",
         maxScale: 2,
         trimWhitespace: true
     },

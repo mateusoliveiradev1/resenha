@@ -1,16 +1,41 @@
-import { pgTable, text, timestamp, uuid, integer } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { championships, championshipGroups } from "./championships";
+import { clubs } from "./clubs";
 
 export const matches = pgTable("matches", {
     id: uuid("id").primaryKey().defaultRandom(),
     date: timestamp("date").notNull(),
     opponent: text("opponent").notNull(),
     opponentLogo: text("opponent_logo"),
+    matchCategory: text("match_category", { enum: ["CHAMPIONSHIP", "FRIENDLY"] }).default("FRIENDLY").notNull(),
+    homeClubId: uuid("home_club_id").references(() => clubs.id, { onDelete: "set null" }),
+    awayClubId: uuid("away_club_id").references(() => clubs.id, { onDelete: "set null" }),
+    homeLabel: text("home_label"),
+    awayLabel: text("away_label"),
+    homeSourceType: text("home_source_type", { enum: ["STATIC", "GROUP_POSITION", "MATCH_WINNER", "MATCH_LOSER"] }),
+    awaySourceType: text("away_source_type", { enum: ["STATIC", "GROUP_POSITION", "MATCH_WINNER", "MATCH_LOSER"] }),
+    homeSourcePosition: integer("home_source_position"),
+    awaySourcePosition: integer("away_source_position"),
+    homeSourceMatchId: uuid("home_source_match_id"),
+    awaySourceMatchId: uuid("away_source_match_id"),
+    homeSourceGroupId: uuid("home_source_group_id"),
+    awaySourceGroupId: uuid("away_source_group_id"),
+    championshipId: uuid("championship_id").references(() => championships.id, { onDelete: "set null" }),
+    championshipGroupId: uuid("championship_group_id").references(() => championshipGroups.id, { onDelete: "set null" }),
+    phaseLabel: text("phase_label"),
+    roundLabel: text("round_label"),
+    matchday: integer("matchday"),
     type: text("type", { enum: ["FUTSAL", "CAMPO"] }).notNull(),
     location: text("location").notNull(),
     scoreHome: integer("score_home"),
     scoreAway: integer("score_away"),
+    tiebreakHome: integer("tiebreak_home"),
+    tiebreakAway: integer("tiebreak_away"),
     status: text("status", { enum: ["SCHEDULED", "LIVE", "FINISHED"] }).default("SCHEDULED").notNull(),
+    autoStatus: boolean("auto_status").default(true).notNull(),
+    durationMinutes: integer("duration_minutes"),
     season: text("season").notNull(),
     summary: text("summary"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -12,6 +12,11 @@ export interface NextMatch {
     location: string;
     type: string;
     season?: string | null;
+    status: "SCHEDULED" | "LIVE" | "FINISHED";
+    scoreHome?: number | null;
+    scoreAway?: number | null;
+    tiebreakHome?: number | null;
+    tiebreakAway?: number | null;
 }
 
 export function NextMatchBanner({ match }: { match?: NextMatch | null }) {
@@ -21,6 +26,7 @@ export function NextMatchBanner({ match }: { match?: NextMatch | null }) {
     React.useEffect(() => {
         setMounted(true);
         if (!match) return;
+        if (match.status === "LIVE") return;
 
         const interval = setInterval(() => {
             const now = new Date().getTime();
@@ -66,7 +72,7 @@ export function NextMatchBanner({ match }: { match?: NextMatch | null }) {
                             <div className="flex flex-wrap items-center gap-3 mb-6">
                                 <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] sm:text-xs font-bold tracking-widest uppercase">
                                     <Radio className="w-3 h-3 md:w-3.5 md:h-3.5 animate-pulse" />
-                                    <span>Proximo Jogo</span>
+                                    <span>{match.status === "LIVE" ? "Em jogo" : "Proximo Jogo"}</span>
                                 </div>
                                 <span className="text-xs font-bold tracking-widest text-navy-400 uppercase">{match.type}</span>
                             </div>
@@ -83,7 +89,9 @@ export function NextMatchBanner({ match }: { match?: NextMatch | null }) {
                                         <Calendar className="w-4 h-4 text-blue-400" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] sm:text-xs text-navy-400 uppercase tracking-wider font-semibold mb-0.5">Data</p>
+                                        <p className="text-[10px] sm:text-xs text-navy-400 uppercase tracking-wider font-semibold mb-0.5">
+                                            {match.status === "LIVE" ? "Ao vivo desde" : "Data"}
+                                        </p>
                                         <p suppressHydrationWarning className="text-sm sm:text-base font-medium tracking-wide">
                                             {mounted ? formatDate(match.date) : "..."}
                                         </p>
@@ -122,9 +130,17 @@ export function NextMatchBanner({ match }: { match?: NextMatch | null }) {
                                 </div>
 
                                 <div className="flex flex-col items-center">
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-navy-950 flex items-center justify-center border border-navy-800 shadow-inner z-10">
-                                        <span className="font-display font-black text-sm sm:text-base italic text-gold-400">VS</span>
-                                    </div>
+                                    {match.status === "LIVE" && match.scoreHome != null && match.scoreAway != null ? (
+                                        <div className="flex items-center justify-center rounded-xl border border-navy-800 bg-navy-950 px-4 py-3 shadow-[inset_0_2px_8px_rgba(0,0,0,0.5)] z-10">
+                                            <span className="font-display text-3xl font-bold text-cream-100">{match.scoreHome}</span>
+                                            <span className="mx-2 text-navy-600 font-black">-</span>
+                                            <span className="font-display text-3xl font-bold text-cream-100">{match.scoreAway}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-navy-950 flex items-center justify-center border border-navy-800 shadow-inner z-10">
+                                            <span className="font-display font-black text-sm sm:text-base italic text-gold-400">VS</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex flex-col items-center group">
@@ -153,28 +169,43 @@ export function NextMatchBanner({ match }: { match?: NextMatch | null }) {
 
                         <div className="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-center items-center border-t lg:border-t-0 lg:border-l border-navy-800/80 bg-navy-950/30">
                             <div className="text-center w-full">
-                                <span className="inline-block text-[10px] sm:text-xs font-bold tracking-widest text-gold-400/80 uppercase mb-6 bg-gold-400/10 px-4 py-1.5 rounded-full border border-gold-400/20">A bola vai rolar em</span>
-
-                                <div className="flex justify-center gap-3 sm:gap-4 md:gap-6">
-                                    {[
-                                        { label: "Dias", value: timeLeft.d },
-                                        { label: "Horas", value: timeLeft.h },
-                                        { label: "Min", value: timeLeft.m },
-                                        { label: "Seg", value: timeLeft.s },
-                                    ].map((unit, index) => (
-                                        <div key={index} className="flex flex-col items-center gap-2">
-                                            <div className="relative">
-                                                <div className="w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 rounded-xl bg-navy-950 border border-navy-800 flex items-center justify-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-                                                    <span className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-cream-100 tabular-nums">
-                                                        {unit.value.toString().padStart(2, "0")}
-                                                    </span>
-                                                </div>
-                                                <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-navy-900/50" />
-                                            </div>
-                                            <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-navy-400 font-bold">{unit.label}</span>
+                                {match.status === "LIVE" ? (
+                                    <>
+                                        <span className="inline-block text-[10px] sm:text-xs font-bold tracking-widest text-red-400/90 uppercase mb-6 bg-red-500/10 px-4 py-1.5 rounded-full border border-red-500/20">
+                                            Ao vivo agora
+                                        </span>
+                                        <div className="rounded-3xl border border-red-500/20 bg-red-500/5 px-6 py-8">
+                                            <p className="text-sm text-cream-300">
+                                                A home esta priorizando esta partida em tempo real. Assim que o placar for atualizado no painel, ele aparece aqui automaticamente.
+                                            </p>
                                         </div>
-                                    ))}
-                                </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="inline-block text-[10px] sm:text-xs font-bold tracking-widest text-gold-400/80 uppercase mb-6 bg-gold-400/10 px-4 py-1.5 rounded-full border border-gold-400/20">A bola vai rolar em</span>
+
+                                        <div className="flex justify-center gap-3 sm:gap-4 md:gap-6">
+                                            {[
+                                                { label: "Dias", value: timeLeft.d },
+                                                { label: "Horas", value: timeLeft.h },
+                                                { label: "Min", value: timeLeft.m },
+                                                { label: "Seg", value: timeLeft.s },
+                                            ].map((unit, index) => (
+                                                <div key={index} className="flex flex-col items-center gap-2">
+                                                    <div className="relative">
+                                                        <div className="w-12 h-14 sm:w-14 sm:h-16 md:w-16 md:h-20 rounded-xl bg-navy-950 border border-navy-800 flex items-center justify-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                                                            <span className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-cream-100 tabular-nums">
+                                                                {unit.value.toString().padStart(2, "0")}
+                                                            </span>
+                                                        </div>
+                                                        <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-navy-900/50" />
+                                                    </div>
+                                                    <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-navy-400 font-bold">{unit.label}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

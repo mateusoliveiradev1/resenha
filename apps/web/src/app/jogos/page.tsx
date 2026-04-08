@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { presentMatches } from "@resenha/db";
 import { db } from "@resenha/db";
-import { matches } from "@resenha/db/schema";
-import { desc } from "drizzle-orm";
+import { championshipGroups, championshipParticipants, championships, clubs, matches } from "@resenha/db/schema";
+import { asc, desc } from "drizzle-orm";
+import { toDisplayMatch } from "@/lib/matches";
 import { JogosClient } from "./JogosClient";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -16,6 +18,29 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default async function JogosPage() {
-    const matchList = await db.select().from(matches).orderBy(desc(matches.date));
+    const [matchRows, clubsData, championshipsData, participantRows, groupRows] = await Promise.all([
+        db.select().from(matches).orderBy(desc(matches.date)),
+        db.query.clubs.findMany({
+            orderBy: [asc(clubs.name)],
+        }),
+        db.query.championships.findMany({
+            orderBy: [desc(championships.startsAt), asc(championships.name)],
+        }),
+        db.query.championshipParticipants.findMany(),
+        db.query.championshipGroups.findMany({
+            orderBy: [asc(championshipGroups.displayOrder), asc(championshipGroups.name)],
+        }),
+    ]);
+
+    const matchList = presentMatches({
+        matches: matchRows,
+        clubs: clubsData,
+        championships: championshipsData,
+        participants: participantRows,
+        groups: groupRows,
+    })
+        .filter((match) => match.isResenhaMatch)
+        .map((match) => toDisplayMatch(match));
+
     return <JogosClient matches={matchList} />;
 }

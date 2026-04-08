@@ -58,8 +58,9 @@ export default async function ElencoPage() {
             shirtNumber: player.shirtNumber,
             photoUrl: player.photoUrl,
             stats: {
-                goals: Math.max(totals?.goals ?? 0, player.goals ?? 0),
-                assists: Math.max(totals?.assists ?? 0, player.assists ?? 0),
+                // Legacy totals remain as historical baseline and new match events are added on top.
+                goals: (player.goals ?? 0) + (totals?.goals ?? 0),
+                assists: (player.assists ?? 0) + (totals?.assists ?? 0),
                 matchesPlayed: totals?.matchesPlayed ?? 0,
                 age: player.birthDate ? new Date().getFullYear() - new Date(player.birthDate).getFullYear() : 25,
                 heightCm: player.heightCm || 175,
