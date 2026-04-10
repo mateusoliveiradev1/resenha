@@ -32,8 +32,12 @@ export function toDisplayMatch(
     return {
         id: match.id,
         opponent: perspective === "FIXTURE" ? match.awayTeam.name : match.opponentName,
+        opponentShortName: perspective === "FIXTURE"
+            ? match.awayTeam.shortName
+            : (match.isResenhaHome ? match.awayTeam.shortName : match.homeTeam.shortName),
         opponentLogo: perspective === "FIXTURE" ? match.awayTeam.logoUrl : match.opponentLogo,
         homeTeamName: perspective === "FIXTURE" ? match.homeTeam.name : undefined,
+        homeTeamShortName: perspective === "FIXTURE" ? match.homeTeam.shortName : undefined,
         homeTeamLogo: perspective === "FIXTURE" ? match.homeTeam.logoUrl : undefined,
         date: match.date,
         location: match.location,
@@ -60,7 +64,7 @@ export function toNextMatch(match: MatchPresentation): NextMatch {
         date: match.date,
         location: match.location,
         type: match.type,
-        season: match.competitionName,
+        season: match.category === "FRIENDLY" ? "Amistoso" : match.competitionName,
         status: match.status,
         scoreHome,
         scoreAway,

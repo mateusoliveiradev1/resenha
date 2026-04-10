@@ -62,6 +62,15 @@ export interface StandingRow {
     efficiency: number;
 }
 
+export interface ScheduleBucket {
+    id: string;
+    kind: "MATCHDAY" | "DATE";
+    title: string;
+    subtitle: string | null;
+    order: number;
+    matches: MatchPresentation[];
+}
+
 interface PresentedMatchesArgs {
     matches: MatchRecord[];
     clubs: ClubRecord[];
@@ -112,6 +121,53 @@ function normalizePattern(value: string) {
 function normalizeOptionalLabel(value?: string | null) {
     const trimmed = value?.trim();
     return trimmed ? trimmed : null;
+}
+
+function formatMatchdayTitle(matchday: number, roundLabel?: string | null) {
+    const normalizedRoundLabel = normalizeOptionalLabel(roundLabel);
+
+    if (normalizedRoundLabel) {
+        const match = normalizedRoundLabel.match(/^(\d+)a\s+rodada$/i);
+
+        if (match) {
+            return `${match[1]}a Rodada`;
+        }
+    }
+
+    return `${matchday}a Rodada`;
+}
+
+function getDateKeyInTimeZone(date: Date, timeZone: string) {
+    return new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).format(date);
+}
+
+function formatCompactDate(date: Date, timeZone: string) {
+    return new Intl.DateTimeFormat("pt-BR", {
+        timeZone,
+        day: "2-digit",
+        month: "2-digit",
+    }).format(date);
+}
+
+function formatDateRangeSubtitle(matches: MatchPresentation[], timeZone: string) {
+    if (matches.length === 0) {
+        return null;
+    }
+
+    const sortedMatches = [...matches].sort((left, right) => left.date.getTime() - right.date.getTime());
+    const firstDate = formatCompactDate(sortedMatches[0].date, timeZone);
+    const lastDate = formatCompactDate(sortedMatches[sortedMatches.length - 1].date, timeZone);
+
+    if (firstDate === lastDate) {
+        return firstDate;
+    }
+
+    return `${firstDate} a ${lastDate}`;
 }
 
 function parseAutomaticSourceLabel(label?: string | null) {
@@ -420,6 +476,55 @@ function buildStandingsIndex(args: {
     return standingsIndex;
 }
 
+function buildStandingsLockIndex(args: {
+    matchesList: MatchRecord[];
+    championshipsList: ChampionshipRecord[];
+}) {
+    const locks = new Map<string, boolean>();
+
+    for (const championship of args.championshipsList) {
+        const championshipMatches = args.matchesList.filter((match) =>
+            match.championshipId === championship.id &&
+            match.matchCategory === "CHAMPIONSHIP"
+        );
+        const hasGroupedMatches = championshipMatches.some((match) => match.championshipGroupId != null);
+        const requiresGroupFilter =
+            hasGroupedMatches &&
+            (championship.format === "GROUP_STAGE" || championship.format === "HYBRID");
+        const groupIds = new Set(
+            championshipMatches
+                .map((match) => match.championshipGroupId)
+                .filter((groupId): groupId is string => Boolean(groupId)),
+        );
+
+        if (championship.format !== "KNOCKOUT") {
+            const overallMatches = championshipMatches.filter((match) => {
+                if (requiresGroupFilter && !match.championshipGroupId) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            locks.set(
+                `${championship.id}:all`,
+                overallMatches.length > 0 && overallMatches.every((match) => match.status === "FINISHED"),
+            );
+        }
+
+        for (const groupId of groupIds) {
+            const groupMatches = championshipMatches.filter((match) => match.championshipGroupId === groupId);
+
+            locks.set(
+                `${championship.id}:${groupId}`,
+                groupMatches.length > 0 && groupMatches.every((match) => match.status === "FINISHED"),
+            );
+        }
+    }
+
+    return locks;
+}
+
 function getKnockoutDecision(match: MatchPresentation | null | undefined) {
     if (!match?.homeTeam.id || !match.awayTeam.id) {
         return null;
@@ -469,6 +574,7 @@ function resolveMatchState(args: {
     match: MatchRecord;
     currentState: ResolvedMatchState;
     standingsIndex: Map<string, StandingRow[]>;
+    standingsLockIndex: Map<string, boolean>;
     presentationsById: Map<string, MatchPresentation>;
     matchesList: MatchRecord[];
     groupNameLookup: Map<string, ChampionshipGroupRecord>;
@@ -498,8 +604,11 @@ function resolveMatchState(args: {
                     ? args.groupNameLookup.get(`${args.match.championshipId}:${normalizePattern(descriptor.parsedGroupName)}`)?.id ?? null
                     : null);
             const key = `${args.match.championshipId ?? ""}:${sourceGroupId ?? "all"}`;
+            const standingsLocked = args.standingsLockIndex.get(key) ?? false;
             const standings = args.standingsIndex.get(key) ?? [];
-            const resolvedClub = standings.find((row) => row.position === descriptor.sourcePosition);
+            const resolvedClub = standingsLocked
+                ? standings.find((row) => row.position === descriptor.sourcePosition)
+                : null;
 
             nextState[side] = {
                 clubId: resolvedClub?.clubId ?? null,
@@ -567,6 +676,10 @@ export function presentMatches(args: PresentedMatchesArgs) {
             participants: args.participants ?? [],
             clubs: args.clubs,
         });
+        const standingsLockIndex = buildStandingsLockIndex({
+            matchesList: args.matches,
+            championshipsList,
+        });
         const presentationsById = buildLookupMap(presentations);
         let changed = false;
 
@@ -576,6 +689,7 @@ export function presentMatches(args: PresentedMatchesArgs) {
                 match,
                 currentState,
                 standingsIndex,
+                standingsLockIndex,
                 presentationsById,
                 matchesList: args.matches,
                 groupNameLookup,
@@ -646,6 +760,99 @@ export function sortMatchesForDisplay(matchesList: MatchPresentation[]) {
 
         return leftDate - rightDate;
     });
+}
+
+export function buildScheduleBuckets(
+    matchesList: MatchPresentation[],
+    options: {
+        now?: Date;
+        timeZone?: string;
+    } = {},
+) {
+    const now = options.now ?? new Date();
+    const timeZone = options.timeZone ?? "America/Sao_Paulo";
+    const hasMatchday = matchesList.some((match) => match.matchday != null);
+    const bucketsById = new Map<string, ScheduleBucket>();
+
+    for (const match of matchesList) {
+        const phaseKey = normalizeOptionalLabel(match.phaseLabel) ?? "fase-unica";
+        const groupKey = match.championshipGroupId ?? "sem-grupo";
+
+        if (hasMatchday && match.matchday != null) {
+            const bucketId = `matchday:${phaseKey}:${groupKey}:${match.matchday}`;
+            const currentBucket = bucketsById.get(bucketId) ?? {
+                id: bucketId,
+                kind: "MATCHDAY" as const,
+                title: formatMatchdayTitle(match.matchday, match.roundLabel),
+                subtitle: null,
+                order: match.date.getTime(),
+                matches: [],
+            };
+
+            currentBucket.matches.push(match);
+            currentBucket.order = Math.min(currentBucket.order, match.date.getTime());
+            bucketsById.set(bucketId, currentBucket);
+            continue;
+        }
+
+        const dateKey = getDateKeyInTimeZone(match.date, timeZone);
+        const bucketId = `date:${phaseKey}:${groupKey}:${dateKey}`;
+        const currentBucket = bucketsById.get(bucketId) ?? {
+            id: bucketId,
+            kind: "DATE" as const,
+            title: formatCompactDate(match.date, timeZone),
+            subtitle: normalizeOptionalLabel(match.phaseLabel),
+            order: match.date.getTime(),
+            matches: [],
+        };
+
+        currentBucket.matches.push(match);
+        currentBucket.order = Math.min(currentBucket.order, match.date.getTime());
+        bucketsById.set(bucketId, currentBucket);
+    }
+
+    const buckets = [...bucketsById.values()]
+        .map((bucket) => ({
+            ...bucket,
+            matches: [...bucket.matches].sort((left, right) => left.date.getTime() - right.date.getTime()),
+            subtitle:
+                bucket.kind === "MATCHDAY"
+                    ? formatDateRangeSubtitle(bucket.matches, timeZone)
+                    : bucket.subtitle,
+        }))
+        .sort((left, right) => left.order - right.order);
+    const liveBucket = buckets
+        .map((bucket) => ({
+            bucket,
+            firstLiveDate: bucket.matches
+                .filter((match) => match.status === "LIVE")
+                .sort((left, right) => left.date.getTime() - right.date.getTime())[0]?.date.getTime() ?? null,
+        }))
+        .filter((item) => item.firstLiveDate != null)
+        .sort((left, right) => (left.firstLiveDate ?? 0) - (right.firstLiveDate ?? 0))[0]?.bucket;
+    const upcomingBucket = buckets
+        .map((bucket) => ({
+            bucket,
+            nextUpcomingDate: bucket.matches
+                .filter((match) => match.status !== "FINISHED" && match.date.getTime() >= now.getTime())
+                .sort((left, right) => left.date.getTime() - right.date.getTime())[0]?.date.getTime() ?? null,
+        }))
+        .filter((item) => item.nextUpcomingDate != null)
+        .sort((left, right) => (left.nextUpcomingDate ?? 0) - (right.nextUpcomingDate ?? 0))[0]?.bucket;
+    const latestFinishedBucket = buckets
+        .map((bucket) => ({
+            bucket,
+            latestFinishedDate: [...bucket.matches]
+                .filter((match) => match.status === "FINISHED")
+                .sort((left, right) => right.date.getTime() - left.date.getTime())[0]?.date.getTime() ?? null,
+        }))
+        .filter((item) => item.latestFinishedDate != null)
+        .sort((left, right) => (right.latestFinishedDate ?? 0) - (left.latestFinishedDate ?? 0))[0]?.bucket;
+
+    return {
+        buckets,
+        initialBucketId: liveBucket?.id ?? upcomingBucket?.id ?? latestFinishedBucket?.id ?? buckets[0]?.id ?? null,
+    };
 }
 
 export function pickFeaturedMatch(matchesList: MatchPresentation[]) {

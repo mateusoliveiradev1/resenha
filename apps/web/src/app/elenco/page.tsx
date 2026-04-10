@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import * as React from "react";
 import { Container } from "@resenha/ui";
-import { db } from "@resenha/db";
-import { matchStats, players as playersTable } from "@resenha/db/schema";
+import { buildRosterSummaries, db } from "@resenha/db";
+import { matchAppearances, matchStats, players as playersTable } from "@resenha/db/schema";
 import { asc, eq, sql } from "drizzle-orm";
 import { type Player } from "@/components/elenco/PlayerCard";
 import { ElencoView } from "./ElencoView";
@@ -19,7 +19,7 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default async function ElencoPage() {
-    const [dbPlayers, aggregatedStats] = await Promise.all([
+    const [dbPlayers, aggregatedStats, aggregatedAppearances] = await Promise.all([
         db
             .select()
             .from(playersTable)
@@ -30,43 +30,40 @@ export default async function ElencoPage() {
                 playerId: matchStats.playerId,
                 goals: sql<number>`coalesce(sum(${matchStats.goals}), 0)`,
                 assists: sql<number>`coalesce(sum(${matchStats.assists}), 0)`,
-                matchesPlayed: sql<number>`count(${matchStats.id})`
             })
             .from(matchStats)
-            .groupBy(matchStats.playerId)
+            .groupBy(matchStats.playerId),
+        db
+            .select({
+                playerId: matchAppearances.playerId,
+                matchesPlayed: sql<number>`count(distinct ${matchAppearances.matchId})`,
+            })
+            .from(matchAppearances)
+            .groupBy(matchAppearances.playerId),
     ]);
-
-    const statsByPlayer = new Map(
-        aggregatedStats.map((item) => [
-            item.playerId,
-            {
-                goals: Number(item.goals) || 0,
-                assists: Number(item.assists) || 0,
-                matchesPlayed: Number(item.matchesPlayed) || 0
-            }
-        ])
-    );
-
-    const players: Player[] = dbPlayers.map((player) => {
-        const totals = statsByPlayer.get(player.id);
-
-        return {
+    const players: Player[] = buildRosterSummaries({
+        players: dbPlayers.map((player) => ({
             id: player.id,
             name: player.name,
             nickname: player.nickname,
             position: player.position as "GOL" | "DEF" | "MEI" | "ATA",
             shirtNumber: player.shirtNumber,
             photoUrl: player.photoUrl,
-            stats: {
-                // Legacy totals remain as historical baseline and new match events are added on top.
-                goals: (player.goals ?? 0) + (totals?.goals ?? 0),
-                assists: (player.assists ?? 0) + (totals?.assists ?? 0),
-                matchesPlayed: totals?.matchesPlayed ?? 0,
-                age: player.birthDate ? new Date().getFullYear() - new Date(player.birthDate).getFullYear() : 25,
-                heightCm: player.heightCm || 175,
-                preferredFoot: (player.preferredFoot as "DIREITO" | "ESQUERDO" | "AMBIDESTRO") || "DIREITO"
-            }
-        };
+            birthDate: player.birthDate,
+            heightCm: player.heightCm,
+            preferredFoot: (player.preferredFoot as "DIREITO" | "ESQUERDO" | "AMBIDESTRO" | null) ?? null,
+            goals: player.goals,
+            assists: player.assists,
+        })),
+        statTotals: aggregatedStats.map((item) => ({
+            playerId: item.playerId,
+            goals: Number(item.goals) || 0,
+            assists: Number(item.assists) || 0,
+        })),
+        appearanceTotals: aggregatedAppearances.map((item) => ({
+            playerId: item.playerId,
+            matchesPlayed: Number(item.matchesPlayed) || 0,
+        })),
     });
 
     return (

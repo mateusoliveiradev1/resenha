@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { db, presentMatch } from "@resenha/db";
-import { championshipGroups, championships, clubs, matches, matchStats, players } from "@resenha/db/schema";
+import { championshipGroups, championships, clubs, matchAppearances, matches, matchStats, players } from "@resenha/db/schema";
 import { asc, desc, eq } from "drizzle-orm";
 import { EditarPartidaForm } from "./EditarPartidaForm";
 
@@ -9,13 +9,17 @@ export const dynamic = "force-dynamic";
 export default async function EditarPartidaPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
 
-    const [matchData, statsData, playersData, clubsData, championshipsData, groupRows] = await Promise.all([
+    const [matchData, statsData, appearanceData, playersData, clubsData, championshipsData, groupRows] = await Promise.all([
         db.query.matches.findFirst({
             where: eq(matches.id, id),
         }),
         db.query.matchStats.findMany({
             where: eq(matchStats.matchId, id),
         }),
+        db
+            .select()
+            .from(matchAppearances)
+            .where(eq(matchAppearances.matchId, id)),
         db.query.players.findMany({
             where: eq(players.isActive, true),
             orderBy: [asc(players.shirtNumber)],
@@ -43,6 +47,7 @@ export default async function EditarPartidaPage({ params }: { params: Promise<{ 
         <EditarPartidaForm
             match={matchData}
             stats={statsData}
+            appearances={appearanceData}
             players={playersData}
             canEditPlayerStats={canEditPlayerStats}
             clubs={clubsData.map((club) => ({

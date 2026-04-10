@@ -1,19 +1,15 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Badge, Card, CardContent, Container, shouldBypassNextImageOptimization } from "@resenha/ui";
-import { buildStandings, db, presentMatches } from "@resenha/db";
+import { buildScheduleBuckets, buildStandings, db, presentMatches } from "@resenha/db";
 import { championshipGroups, championshipParticipants, championships, clubs, matches } from "@resenha/db/schema";
 import { asc, eq } from "drizzle-orm";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { MatchCard } from "@/components/jogos/MatchCard";
 import { toDisplayMatch } from "@/lib/matches";
+import { CompetitionSchedulePanel } from "./CompetitionSchedulePanel";
 
 export const dynamic = "force-dynamic";
 const DISPLAY_TIMEZONE = "America/Sao_Paulo";
-
-function formatFixtureLabel(match: ReturnType<typeof presentMatches>[number]) {
-    return `${match.homeTeam.shortName} x ${match.awayTeam.shortName}`;
-}
 
 type RecentFormResult = "W" | "D" | "L";
 type StandingRowData = ReturnType<typeof buildStandings>[number];
@@ -420,7 +416,6 @@ function StandingsPanel({
 
 export default async function CampeonatoDetalhePage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
-    const now = new Date();
 
     const championship = await db.query.championships.findFirst({
         where: eq(championships.slug, slug),
@@ -516,13 +511,16 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
                 positionDeltaMap: standingsPositionDeltaMap,
             },
         ];
-
-    const liveOrUpcomingMatches = presentedMatches
-        .filter((match) => match.status === "LIVE" || (match.status === "SCHEDULED" && match.date.getTime() >= now.getTime()))
-        .sort((left, right) => left.date.getTime() - right.date.getTime());
-    const finishedMatches = presentedMatches
-        .filter((match) => match.status === "FINISHED")
-        .sort((left, right) => right.date.getTime() - left.date.getTime());
+    const scheduleState = buildScheduleBuckets(presentedMatches);
+    const scheduleBuckets = scheduleState.buckets.map((bucket) => ({
+        id: bucket.id,
+        kind: bucket.kind,
+        title: bucket.title,
+        subtitle: bucket.subtitle,
+        matches: bucket.matches.map((match) => toDisplayMatch(match, { perspective: "FIXTURE" })),
+    }));
+    const expectedMatchesPerRound =
+        championship.format === "KNOCKOUT" ? null : Math.floor(participantRows.length / 2);
 
     return (
         <div className="min-h-screen py-12 lg:py-20">
@@ -556,7 +554,7 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
                     </div>
                 </section>
 
-                <section className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.95fr)]">
+                <section className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.95fr)]">
                     <div className="space-y-6">
                         {standingsSections.map((section) => (
                             <StandingsPanel
@@ -570,66 +568,11 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
                             />
                         ))}
                     </div>
-
-                    <Card variant="glass" className="border-cream-100/8">
-                        <CardContent className="p-6">
-                            <div className="mb-6">
-                                <Badge variant="outline" className="mb-4 border-cream-100/10 bg-navy-950/40 text-cream-100">
-                                    Resumo
-                                </Badge>
-                                <h2 className="font-display text-3xl font-bold tracking-tight text-cream-100">
-                                    Leitura rapida
-                                </h2>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="rounded-2xl border border-navy-800 bg-navy-950/50 p-4">
-                                    <p className="text-xs uppercase tracking-[0.22em] text-cream-300/60">Proximo jogo</p>
-                                    <p className="mt-3 text-lg font-semibold text-cream-100">
-                                        {liveOrUpcomingMatches[0] ? formatFixtureLabel(liveOrUpcomingMatches[0]) : "A definir"}
-                                    </p>
-                                </div>
-                                <div className="rounded-2xl border border-navy-800 bg-navy-950/50 p-4">
-                                    <p className="text-xs uppercase tracking-[0.22em] text-cream-300/60">Ultimo resultado</p>
-                                    <p className="mt-3 text-lg font-semibold text-cream-100">
-                                        {finishedMatches[0] ? formatFixtureLabel(finishedMatches[0]) : "Ainda sem resultado"}
-                                    </p>
-                                </div>
-                                <div className="rounded-2xl border border-navy-800 bg-navy-950/50 p-4">
-                                    <p className="text-xs uppercase tracking-[0.22em] text-cream-300/60">Status</p>
-                                    <p className="mt-3 text-lg font-semibold text-cream-100">
-                                        {championship.status === "LIVE" ? "Competicao em andamento" : championship.status === "FINISHED" ? "Competicao encerrada" : "Competicao planejada"}
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </section>
-
-                <section className="mt-12">
-                    <div className="mb-6">
-                        <Badge variant="accent" className="mb-4">
-                            Agenda da competicao
-                        </Badge>
-                        <h2 className="font-display text-3xl font-bold tracking-tight text-cream-100">
-                            Jogos e rodadas
-                        </h2>
-                    </div>
-
-                    {presentedMatches.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            {presentedMatches.map((match) => (
-                                <MatchCard key={match.id} match={toDisplayMatch(match, { perspective: "FIXTURE" })} />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="rounded-3xl border border-dashed border-navy-800 bg-navy-900/20 px-6 py-16 text-center">
-                            <h2 className="font-display text-2xl font-bold text-cream-100">Nenhuma partida cadastrada</h2>
-                            <p className="mt-3 text-sm text-cream-300">
-                                Assim que os confrontos forem lancados no admin, eles aparecem aqui automaticamente.
-                            </p>
-                        </div>
-                    )}
+                    <CompetitionSchedulePanel
+                        buckets={scheduleBuckets}
+                        initialBucketId={scheduleState.initialBucketId}
+                        expectedMatchesPerRound={expectedMatchesPerRound}
+                    />
                 </section>
             </Container>
         </div>

@@ -15,6 +15,7 @@
 | 07 | [Wireframes UI](./07-WIREFRAMES.md) | Layout de cada página (web + admin) |
 | 08 | [Performance](./08-PERFORMANCE.md) | Caching, PPR, targets, técnicas |
 | 09 | [Deploy](./09-DEPLOY.md) | Topologia, Vercel, Neon, env vars |
+| 10 | [SDD Campeonatos + Elenco](./10-SDD-CAMPEONATOS-ELENCO.md) | Redesign da agenda por rodada + correcao de jogos do elenco |
 
 ## Tasks de Execução
 

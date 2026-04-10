@@ -7,7 +7,7 @@
         "./schema": "./src/schema/index.ts"
     },
     "scripts": {
-        "test": "tsc src/services/football.test.ts --outDir .tmp-tests --module commonjs --target es2022 --moduleResolution node --esModuleInterop --skipLibCheck --lib es2022,dom && node .tmp-tests/services/football.test.js"
+        "test": "tsc src/services/football.test.ts src/services/roster.test.ts --outDir .tmp-tests --module commonjs --target es2022 --moduleResolution node --esModuleInterop --skipLibCheck --lib es2022,dom && node .tmp-tests/services/football.test.js && node .tmp-tests/services/roster.test.js"
     },
     "dependencies": {
         "@neondatabase/serverless": "^0.10.0",

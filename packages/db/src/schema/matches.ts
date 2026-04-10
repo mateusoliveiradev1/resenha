@@ -1,6 +1,9 @@
+import { relations } from "drizzle-orm";
 import { boolean, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { championships, championshipGroups } from "./championships";
 import { clubs } from "./clubs";
+import { matchAppearances } from "./match-appearances";
+import { matchStats } from "./match-stats";
 
 export const matches = pgTable("matches", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -39,3 +42,8 @@ export const matches = pgTable("matches", {
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const matchesRelations = relations(matches, ({ many }) => ({
+    stats: many(matchStats),
+    appearances: many(matchAppearances),
+}));

@@ -1,10 +1,12 @@
 "use server";
 
 import { db, getDefaultDurationMinutes, presentMatch } from "@resenha/db";
-import { championshipGroups, championships, clubs, matchStats, matches } from "@resenha/db/schema";
+import { championshipGroups, championships, clubs, matchAppearances, matchStats, matches } from "@resenha/db/schema";
 import {
     CreateMatchSchema,
     type CreateMatchInput,
+    UpsertMatchAppearancesSchema,
+    type UpsertMatchAppearancesInput,
     UpdateMatchSchema,
     type UpdateMatchInput,
     UpsertMatchStatsSchema,
@@ -531,21 +533,35 @@ export async function upsertMatchStatsAction(data: UpsertMatchStatsInput) {
             throw new Error("Estatisticas de jogadores so podem ser salvas em partidas do Resenha.");
         }
 
-        await db.delete(matchStats).where(eq(matchStats.matchId, parsed.matchId));
+        await db.transaction(async (tx) => {
+            await tx.delete(matchStats).where(eq(matchStats.matchId, parsed.matchId));
 
-        if (parsed.stats.length > 0) {
-            await db.insert(matchStats).values(
-                parsed.stats.map((item) => ({
-                    matchId: parsed.matchId,
-                    playerId: item.playerId,
-                    goals: item.goals,
-                    assists: item.assists,
-                    yellowCards: item.yellowCards,
-                    redCards: item.redCards,
-                    minutesPlayed: item.minutesPlayed ?? null
-                }))
-            );
-        }
+            if (parsed.stats.length > 0) {
+                await tx.insert(matchStats).values(
+                    parsed.stats.map((item) => ({
+                        matchId: parsed.matchId,
+                        playerId: item.playerId,
+                        goals: item.goals,
+                        assists: item.assists,
+                        yellowCards: item.yellowCards,
+                        redCards: item.redCards,
+                        minutesPlayed: item.minutesPlayed ?? null
+                    }))
+                );
+
+                await tx.insert(matchAppearances)
+                    .values(
+                        parsed.stats.map((item) => ({
+                            matchId: parsed.matchId,
+                            playerId: item.playerId,
+                            minutesPlayed: item.minutesPlayed ?? null,
+                        })),
+                    )
+                    .onConflictDoNothing({
+                        target: [matchAppearances.matchId, matchAppearances.playerId],
+                    });
+            }
+        });
 
         revalidateMatchPages(parsed.matchId);
 
@@ -555,8 +571,56 @@ export async function upsertMatchStatsAction(data: UpsertMatchStatsInput) {
     }
 }
 
+export async function upsertMatchAppearancesAction(data: UpsertMatchAppearancesInput) {
+    try {
+        const cleanedPayload = {
+            ...data,
+            appearances: data.appearances.filter((item) => item.playerId),
+        };
+
+        const parsed = UpsertMatchAppearancesSchema.parse(cleanedPayload);
+        const [matchRecord, clubsData] = await Promise.all([
+            db.query.matches.findFirst({
+                where: eq(matches.id, parsed.matchId),
+            }),
+            db.query.clubs.findMany(),
+        ]);
+
+        if (!matchRecord) {
+            throw new Error("Partida nao encontrada.");
+        }
+
+        if (!presentMatch(matchRecord, clubsData).isResenhaMatch) {
+            throw new Error("Participacao de jogadores so pode ser salva em partidas do Resenha.");
+        }
+
+        await db.delete(matchAppearances).where(eq(matchAppearances.matchId, parsed.matchId));
+
+        if (parsed.appearances.length > 0) {
+            const now = new Date();
+
+            await db.insert(matchAppearances).values(
+                parsed.appearances.map((item) => ({
+                    matchId: parsed.matchId,
+                    playerId: item.playerId,
+                    minutesPlayed: item.minutesPlayed ?? null,
+                    createdAt: now,
+                    updatedAt: now,
+                })),
+            );
+        }
+
+        revalidateMatchPages(parsed.matchId);
+
+        return { success: true };
+    } catch (error: unknown) {
+        return { success: false, error: getErrorMessage(error, "Nao foi possivel salvar as aparicoes da partida.") };
+    }
+}
+
 export {
     createMatchAction as createMatch,
     updateMatchAction as updateMatch,
+    upsertMatchAppearancesAction as upsertMatchAppearances,
     upsertMatchStatsAction as upsertMatchStats
 };

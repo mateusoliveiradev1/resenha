@@ -1,4 +1,5 @@
 import {
+    buildScheduleBuckets,
     buildStandings,
     type ChampionshipParticipantRecord,
     type ChampionshipRecord,
@@ -272,6 +273,59 @@ assertEqual(finalMatch.homeTeam.name, "Beta");
 assertEqual(finalMatch.awayTeam.name, "Gama");
 assertEqual(finalMatch.isResenhaMatch, true);
 
+const incompleteGroupStageMatches: MatchRecord[] = [
+    ...matches.filter((match) => match.matchday != null && match.matchday <= 4),
+    createMatch({
+        id: "match-5",
+        championshipId: championship.id,
+        championshipGroupId: "group-1",
+        matchday: 5,
+        date: new Date("2026-05-05T22:00:00.000Z"),
+        type: "FUTSAL",
+        location: "Quadra",
+        season: championship.name,
+        homeClubId: "club-a",
+        awayClubId: "club-d",
+        status: "SCHEDULED",
+        phaseLabel: "Grupo Unico",
+    }),
+    createMatch({
+        id: "pending-semi-1",
+        championshipId: championship.id,
+        matchday: 37,
+        date: new Date("2026-05-26T22:30:00.000Z"),
+        type: "FUTSAL",
+        location: "Quadra",
+        season: championship.name,
+        homeLabel: "2o colocado",
+        awayLabel: "3o colocado",
+        homeSourceType: "GROUP_POSITION",
+        awaySourceType: "GROUP_POSITION",
+        homeSourcePosition: 2,
+        awaySourcePosition: 3,
+        status: "SCHEDULED",
+        phaseLabel: "Semifinal",
+    }),
+];
+
+const incompleteGroupStagePresentations = presentMatches({
+    matches: incompleteGroupStageMatches,
+    clubs,
+    championships: [championship],
+    participants,
+    now,
+});
+
+const pendingSemifinal = incompleteGroupStagePresentations.find((match) => match.id === "pending-semi-1");
+
+assert(pendingSemifinal, "A semifinal pendente precisa existir");
+assertEqual(
+    pendingSemifinal.homeTeam.name,
+    "2o colocado",
+    "A vaga nao deve ser preenchida antes do encerramento da fase classificatoria",
+);
+assertEqual(pendingSemifinal.awayTeam.name, "3o colocado");
+
 const shootoutMatches: MatchRecord[] = [
     ...matches.filter((match) => match.matchday != null && match.matchday <= 4),
     createMatch({
@@ -367,5 +421,68 @@ assertDeepEqual(
         { clubName: "Delta", points: 0, played: 2 },
     ],
 );
+
+const roundScheduleMatches: MatchRecord[] = [
+    createMatch({
+        id: "schedule-11-a",
+        championshipId: championship.id,
+        matchday: 11,
+        roundLabel: "11a rodada",
+        phaseLabel: "Grupo Unico",
+        date: new Date("2026-04-11T19:30:00.000Z"),
+        type: "FUTSAL",
+        location: "Barradao",
+        season: championship.name,
+        homeClubId: "club-a",
+        awayClubId: "club-b",
+        status: "SCHEDULED",
+    }),
+    createMatch({
+        id: "schedule-11-b",
+        championshipId: championship.id,
+        matchday: 11,
+        roundLabel: "11a rodada",
+        phaseLabel: "Grupo Unico",
+        date: new Date("2026-04-12T19:30:00.000Z"),
+        type: "FUTSAL",
+        location: "Mane Garrincha",
+        season: championship.name,
+        homeClubId: "club-c",
+        awayClubId: "club-d",
+        status: "SCHEDULED",
+    }),
+    createMatch({
+        id: "schedule-12-a",
+        championshipId: championship.id,
+        matchday: 12,
+        roundLabel: "12a rodada",
+        phaseLabel: "Grupo Unico",
+        date: new Date("2026-04-18T19:30:00.000Z"),
+        type: "FUTSAL",
+        location: "Quadra Central",
+        season: championship.name,
+        homeClubId: "club-b",
+        awayClubId: "club-c",
+        status: "SCHEDULED",
+    }),
+];
+
+const roundSchedulePresentations = presentMatches({
+    matches: roundScheduleMatches,
+    clubs,
+    championships: [championship],
+    participants,
+    now: new Date("2026-04-10T00:00:00.000Z"),
+});
+
+const scheduleBuckets = buildScheduleBuckets(roundSchedulePresentations, {
+    now: new Date("2026-04-10T00:00:00.000Z"),
+});
+
+assertEqual(scheduleBuckets.buckets.length, 2, "Matches with same matchday should share one schedule bucket");
+assertEqual(scheduleBuckets.buckets[0]?.kind, "MATCHDAY");
+assertEqual(scheduleBuckets.buckets[0]?.title, "11a Rodada");
+assertEqual(scheduleBuckets.buckets[0]?.matches.length, 2, "Round bucket must include games from different days");
+assertEqual(scheduleBuckets.initialBucketId, scheduleBuckets.buckets[0]?.id);
 
 console.log("football.test.ts passed");

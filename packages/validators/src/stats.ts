@@ -12,4 +12,13 @@ export const UpsertMatchStatsSchema = z.object({
     }))
 });
 
+export const UpsertMatchAppearancesSchema = z.object({
+    matchId: z.string().uuid(),
+    appearances: z.array(z.object({
+        playerId: z.string().uuid(),
+        minutesPlayed: z.number().int().min(0).optional().nullable(),
+    })),
+});
+
 export type UpsertMatchStatsInput = z.infer<typeof UpsertMatchStatsSchema>;
+export type UpsertMatchAppearancesInput = z.infer<typeof UpsertMatchAppearancesSchema>;

@@ -1,19 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { useFieldArray, useForm, type Resolver } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
     UpdateMatchSchema,
     type UpdateMatchInput,
-    UpsertMatchStatsSchema,
-    type UpsertMatchStatsInput,
 } from "@resenha/validators";
 import { Button, Card, CardContent, FormField, Tabs } from "@resenha/ui";
-import { ArrowLeft, Building2, Plus, Save, Trash2, Trophy } from "lucide-react";
+import { ArrowLeft, Building2, Save, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { updateMatch, upsertMatchStats } from "@/actions/matches";
+import { updateMatch, upsertMatchAppearances, upsertMatchStats } from "@/actions/matches";
 import { formatDateTimeLocalValue, parseDateTimeLocalToIso } from "@/lib/dateTimeLocal";
 
 type MatchData = {
@@ -52,6 +50,11 @@ type MatchStatsData = {
     minutesPlayed?: number | null;
 };
 
+type MatchAppearanceData = {
+    playerId: string;
+    minutesPlayed?: number | null;
+};
+
 type PlayerOption = {
     id: string;
     name: string;
@@ -80,9 +83,39 @@ type ChampionshipGroupOption = {
     name: string;
 };
 
+type AppearanceRowFormValue = {
+    playerId: string;
+    appeared: boolean;
+    minutesPlayed: number | null;
+};
+
+type AppearanceFormValues = {
+    rows: AppearanceRowFormValue[];
+};
+
+type StatsFormValues = {
+    stats: Array<{
+        playerId: string;
+        goals: number;
+        assists: number;
+        yellowCards: number;
+        redCards: number;
+    }>;
+};
+
+const parseOptionalNumber = (value: unknown) => {
+    if (value === "" || value == null) {
+        return null;
+    }
+
+    const parsedValue = Number(value);
+    return Number.isNaN(parsedValue) ? null : parsedValue;
+};
+
 export function EditarPartidaForm({
     match,
     stats,
+    appearances,
     players,
     canEditPlayerStats,
     clubs,
@@ -91,6 +124,7 @@ export function EditarPartidaForm({
 }: {
     match: MatchData;
     stats: MatchStatsData[];
+    appearances: MatchAppearanceData[];
     players: PlayerOption[];
     canEditPlayerStats: boolean;
     clubs: ClubOption[];
@@ -100,9 +134,19 @@ export function EditarPartidaForm({
     const router = useRouter();
     const [activeTab, setActiveTab] = React.useState("GERAL");
     const [isSavingGeneral, setIsSavingGeneral] = React.useState(false);
+    const [isSavingAppearances, setIsSavingAppearances] = React.useState(false);
     const [isSavingStats, setIsSavingStats] = React.useState(false);
     const [generalFeedback, setGeneralFeedback] = React.useState<string | null>(null);
+    const [appearancesFeedback, setAppearancesFeedback] = React.useState<string | null>(null);
     const [statsFeedback, setStatsFeedback] = React.useState<string | null>(null);
+    const appearanceMap = React.useMemo(
+        () => new Map(appearances.map((item) => [item.playerId, item])),
+        [appearances],
+    );
+    const statsMap = React.useMemo(
+        () => new Map(stats.map((item) => [item.playerId, item])),
+        [stats],
+    );
 
     const {
         register: registerMatch,
@@ -139,31 +183,72 @@ export function EditarPartidaForm({
         }
     });
 
-    const { register: registerStats, control, handleSubmit: submitStats } = useForm<UpsertMatchStatsInput>({
-        resolver: zodResolver(UpsertMatchStatsSchema) as Resolver<UpsertMatchStatsInput>,
+    const {
+        register: registerAppearances,
+        handleSubmit: submitAppearances,
+        watch: watchAppearances,
+        getValues: getAppearanceValues,
+        setValue: setAppearanceValue,
+    } = useForm<AppearanceFormValues>({
         defaultValues: {
-            matchId: match.id,
-            stats: stats.length > 0
-                ? stats.map((item) => ({
-                    playerId: item.playerId,
-                    goals: item.goals ?? 0,
-                    assists: item.assists ?? 0,
-                    yellowCards: item.yellowCards ?? 0,
-                    redCards: item.redCards ?? 0,
-                    minutesPlayed: item.minutesPlayed ?? null
-                }))
-                : [{ playerId: "", goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: null }]
-        }
+            rows: players.map((player) => {
+                const appearance = appearanceMap.get(player.id);
+                const stat = statsMap.get(player.id);
+
+                return {
+                    playerId: player.id,
+                    appeared: Boolean(appearance || stat),
+                    minutesPlayed: appearance?.minutesPlayed ?? stat?.minutesPlayed ?? null,
+                };
+            }),
+        },
     });
 
-    const { fields, append, remove } = useFieldArray({ control, name: "stats" });
+    const { register: registerStats, handleSubmit: submitStats } = useForm<StatsFormValues>({
+        defaultValues: {
+            stats: players.map((player) => {
+                const currentStats = statsMap.get(player.id);
+
+                return {
+                    playerId: player.id,
+                    goals: currentStats?.goals ?? 0,
+                    assists: currentStats?.assists ?? 0,
+                    yellowCards: currentStats?.yellowCards ?? 0,
+                    redCards: currentStats?.redCards ?? 0,
+                };
+            }),
+        },
+    });
+
     const matchCategory = watch("matchCategory");
     const autoStatus = watch("autoStatus");
     const selectedChampionshipId = watch("championshipId");
+    const appearanceRows = watchAppearances("rows");
+    const selectedPlayerIds = React.useMemo(
+        () => new Set((appearanceRows ?? []).filter((row) => row.appeared).map((row) => row.playerId)),
+        [appearanceRows],
+    );
+    const selectedAppearanceCount = selectedPlayerIds.size;
     const availableGroups = React.useMemo(
         () => groups.filter((group) => group.championshipId === selectedChampionshipId),
         [groups, selectedChampionshipId]
     );
+
+    const setAllAppearanceRows = (appeared: boolean) => {
+        getAppearanceValues("rows").forEach((_, index) => {
+            setAppearanceValue(`rows.${index}.appeared`, appeared, {
+                shouldDirty: true,
+                shouldTouch: true,
+            });
+
+            if (!appeared) {
+                setAppearanceValue(`rows.${index}.minutesPlayed`, null, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                });
+            }
+        });
+    };
 
     React.useEffect(() => {
         if (matchCategory === "FRIENDLY") {
@@ -205,13 +290,53 @@ export function EditarPartidaForm({
         setGeneralFeedback(result.error ?? "Nao foi possivel atualizar a partida.");
     };
 
-    const onStatsSubmit = async (data: UpsertMatchStatsInput) => {
+    const onAppearancesSubmit = async (data: AppearanceFormValues) => {
+        setIsSavingAppearances(true);
+        setAppearancesFeedback(null);
+
+        const result = await upsertMatchAppearances({
+            matchId: match.id,
+            appearances: data.rows
+                .filter((item) => item.appeared)
+                .map((item) => ({
+                    playerId: item.playerId,
+                    minutesPlayed: item.minutesPlayed ?? null,
+                })),
+        });
+
+        setIsSavingAppearances(false);
+
+        if (result.success) {
+            setAppearancesFeedback("Participacao salva com sucesso.");
+            router.refresh();
+            return;
+        }
+
+        setAppearancesFeedback(result.error ?? "Nao foi possivel salvar a participacao da partida.");
+    };
+
+    const onStatsSubmit = async (data: StatsFormValues) => {
         setIsSavingStats(true);
         setStatsFeedback(null);
+        const selectedIds = new Set(
+            getAppearanceValues("rows")
+                .filter((row) => row.appeared)
+                .map((row) => row.playerId),
+        );
 
         const result = await upsertMatchStats({
-            ...data,
-            stats: data.stats.filter((item) => item.playerId)
+            matchId: match.id,
+            stats: data.stats
+                .filter((item) => selectedIds.has(item.playerId))
+                .filter((item) => item.goals > 0 || item.assists > 0 || item.yellowCards > 0 || item.redCards > 0)
+                .map((item) => ({
+                    playerId: item.playerId,
+                    goals: item.goals,
+                    assists: item.assists,
+                    yellowCards: item.yellowCards,
+                    redCards: item.redCards,
+                    minutesPlayed: null,
+                })),
         });
 
         setIsSavingStats(false);
@@ -244,7 +369,8 @@ export function EditarPartidaForm({
                     canEditPlayerStats
                         ? [
                             { id: "GERAL", label: "Dados Gerais" },
-                            { id: "STATS", label: "Estatisticas de Jogadores" }
+                            { id: "APPEARANCES", label: "Participacao" },
+                            { id: "STATS", label: "Eventos" }
                         ]
                         : [{ id: "GERAL", label: "Dados Gerais" }]
                 }
@@ -626,61 +752,183 @@ export function EditarPartidaForm({
                     </form>
                 )}
 
+                {canEditPlayerStats && activeTab === "APPEARANCES" && (
+                    <form onSubmit={submitAppearances(onAppearancesSubmit)}>
+                        <Card className="border-navy-800 bg-navy-900">
+                            <CardContent className="space-y-6 p-6">
+                                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-4 text-sm text-blue-100">
+                                    Primeiro marque quem realmente jogou. A contagem de <strong>Jogos</strong> no elenco passa a sair desta lista, mesmo quando o atleta nao fez gol nem assistencia.
+                                </div>
+
+                                <div className="flex flex-col gap-3 rounded-2xl border border-navy-800 bg-navy-950/50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="text-sm font-semibold text-cream-100">
+                                            {selectedAppearanceCount} de {players.length} jogadores marcados
+                                        </p>
+                                        <p className="mt-1 text-xs text-cream-300">
+                                            Use as acoes rapidas para acelerar o ajuste dos jogos antigos.
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setAllAppearanceRows(true)}
+                                        >
+                                            Marcar todos
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setAllAppearanceRows(false)}
+                                        >
+                                            Limpar
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                    {players.map((player, index) => {
+                                        const appeared = appearanceRows?.[index]?.appeared ?? false;
+
+                                        return (
+                                            <label
+                                                key={player.id}
+                                                className={`rounded-2xl border px-4 py-4 transition-colors ${
+                                                    appeared
+                                                        ? "border-blue-500/30 bg-blue-500/10"
+                                                        : "border-navy-800 bg-navy-950/50"
+                                                }`}
+                                            >
+                                                <input
+                                                    type="hidden"
+                                                    {...registerAppearances(`rows.${index}.playerId`)}
+                                                    value={player.id}
+                                                />
+                                                <div className="flex items-start gap-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        {...registerAppearances(`rows.${index}.appeared`)}
+                                                        className="mt-1 h-4 w-4 rounded border-navy-700 bg-navy-900 text-blue-500 focus:ring-blue-500"
+                                                    />
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="font-semibold text-cream-100">
+                                                            #{player.shirtNumber} - {player.nickname}
+                                                        </p>
+                                                        <p className="mt-1 text-xs text-cream-300">{player.name}</p>
+                                                        <div className="mt-3">
+                                                            <label className="mb-1 block text-[11px] font-medium uppercase tracking-[0.18em] text-cream-300/70">
+                                                                Minutos
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                disabled={!appeared}
+                                                                {...registerAppearances(`rows.${index}.minutesPlayed`, {
+                                                                    setValueAs: parseOptionalNumber,
+                                                                })}
+                                                                className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-cream-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+
+                                {appearancesFeedback && (
+                                    <div
+                                        className={`rounded-xl px-4 py-3 text-sm ${
+                                            appearancesFeedback.includes("sucesso")
+                                                ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                                                : "border border-red-500/30 bg-red-500/10 text-red-200"
+                                        }`}
+                                    >
+                                        {appearancesFeedback}
+                                    </div>
+                                )}
+
+                                <div className="flex items-center justify-end gap-4 border-t border-navy-800 pt-4">
+                                    <Button type="submit" variant="primary" disabled={isSavingAppearances}>
+                                        <Save className="mr-2 h-4 w-4" />
+                                        {isSavingAppearances ? "Salvando..." : "Salvar Participacao"}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </form>
+                )}
+
                 {canEditPlayerStats && activeTab === "STATS" && (
                     <form onSubmit={submitStats(onStatsSubmit)}>
-                        <Card className="bg-navy-900 border-navy-800">
-                            <CardContent className="p-6 space-y-6">
-                                <div className="space-y-4">
-                                    {fields.map((field, index) => (
-                                        <div key={field.id} className="flex flex-wrap items-end gap-4 rounded-xl border border-navy-800 bg-navy-950/50 p-4">
-                                            <div className="min-w-[220px] flex-1">
-                                                <label className="text-xs font-medium text-cream-300 block mb-1">Jogador</label>
-                                                <select
-                                                    {...registerStats(`stats.${index}.playerId`)}
-                                                    className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-cream-100"
-                                                >
-                                                    <option value="">Selecione um jogador</option>
-                                                    {players.map((player) => (
-                                                        <option key={player.id} value={player.id}>
-                                                            #{player.shirtNumber} - {player.nickname} ({player.name})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div className="w-20">
-                                                <label className="text-xs font-medium text-cream-300 block mb-1">Gols</label>
-                                                <input type="number" {...registerStats(`stats.${index}.goals`, { valueAsNumber: true })} className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-cream-100" />
-                                            </div>
-                                            <div className="w-20">
-                                                <label className="text-xs font-medium text-cream-300 block mb-1">Assist.</label>
-                                                <input type="number" {...registerStats(`stats.${index}.assists`, { valueAsNumber: true })} className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-cream-100" />
-                                            </div>
-                                            <div className="w-20">
-                                                <label className="text-xs font-medium text-cream-300 block mb-1">CA</label>
-                                                <input type="number" {...registerStats(`stats.${index}.yellowCards`, { valueAsNumber: true })} className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-yellow-500" />
-                                            </div>
-                                            <div className="w-20">
-                                                <label className="text-xs font-medium text-cream-300 block mb-1">CV</label>
-                                                <input type="number" {...registerStats(`stats.${index}.redCards`, { valueAsNumber: true })} className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-red-500" />
-                                            </div>
-                                            <div className="w-24">
-                                                <label className="text-xs font-medium text-cream-300 block mb-1">Minutos</label>
-                                                <input type="number" {...registerStats(`stats.${index}.minutesPlayed`, { valueAsNumber: true })} className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-cream-100" />
-                                            </div>
-                                            <Button type="button" variant="destructive" size="sm" onClick={() => remove(index)} className="h-9 px-3">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    ))}
+                        <Card className="border-navy-800 bg-navy-900">
+                            <CardContent className="space-y-6 p-6">
+                                <div className="rounded-2xl border border-navy-800 bg-navy-950/50 px-4 py-4 text-sm text-cream-200">
+                                    Esta aba mostra apenas os atletas marcados em <strong>Participacao</strong>. Deixe tudo zerado para quem jogou mas nao teve evento.
+                                </div>
 
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => append({ playerId: "", goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: null })}
-                                        className="w-full border-dashed border-navy-700 bg-transparent text-blue-400 hover:bg-navy-800/50"
-                                    >
-                                        <Plus className="mr-2 h-4 w-4" /> Adicionar Jogador
-                                    </Button>
+                                <div className="space-y-4">
+                                    {players.map((player, index) => {
+                                        if (!selectedPlayerIds.has(player.id)) {
+                                            return null;
+                                        }
+
+                                        return (
+                                            <div key={player.id} className="flex flex-wrap items-end gap-4 rounded-xl border border-navy-800 bg-navy-950/50 p-4">
+                                                <input
+                                                    type="hidden"
+                                                    {...registerStats(`stats.${index}.playerId`)}
+                                                    value={player.id}
+                                                />
+                                                <div className="min-w-[220px] flex-1">
+                                                    <label className="mb-1 block text-xs font-medium text-cream-300">Jogador</label>
+                                                    <div className="flex h-9 items-center rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-cream-100">
+                                                        #{player.shirtNumber} - {player.nickname} ({player.name})
+                                                    </div>
+                                                </div>
+                                                <div className="w-20">
+                                                    <label className="mb-1 block text-xs font-medium text-cream-300">Gols</label>
+                                                    <input
+                                                        type="number"
+                                                        {...registerStats(`stats.${index}.goals`, { valueAsNumber: true })}
+                                                        className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-cream-100"
+                                                    />
+                                                </div>
+                                                <div className="w-20">
+                                                    <label className="mb-1 block text-xs font-medium text-cream-300">Assist.</label>
+                                                    <input
+                                                        type="number"
+                                                        {...registerStats(`stats.${index}.assists`, { valueAsNumber: true })}
+                                                        className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-cream-100"
+                                                    />
+                                                </div>
+                                                <div className="w-20">
+                                                    <label className="mb-1 block text-xs font-medium text-cream-300">CA</label>
+                                                    <input
+                                                        type="number"
+                                                        {...registerStats(`stats.${index}.yellowCards`, { valueAsNumber: true })}
+                                                        className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-yellow-500"
+                                                    />
+                                                </div>
+                                                <div className="w-20">
+                                                    <label className="mb-1 block text-xs font-medium text-cream-300">CV</label>
+                                                    <input
+                                                        type="number"
+                                                        {...registerStats(`stats.${index}.redCards`, { valueAsNumber: true })}
+                                                        className="flex h-9 w-full rounded-md border border-navy-800 bg-navy-900 px-3 text-sm text-red-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {selectedPlayerIds.size === 0 && (
+                                        <div className="rounded-2xl border border-dashed border-navy-700 bg-navy-950/40 px-4 py-10 text-center text-sm text-cream-300">
+                                            Marque pelo menos um jogador em <strong>Participacao</strong> para liberar os eventos da partida.
+                                        </div>
+                                    )}
                                 </div>
 
                                 {statsFeedback && (

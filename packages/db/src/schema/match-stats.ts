@@ -24,11 +24,3 @@ export const matchStatsRelations = relations(matchStats, ({ one }) => ({
         references: [players.id],
     }),
 }));
-
-export const matchesRelations = relations(matches, ({ many }) => ({
-    stats: many(matchStats),
-}));
-
-export const playersRelations = relations(players, ({ many }) => ({
-    stats: many(matchStats),
-}));

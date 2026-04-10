@@ -8,8 +8,10 @@ import { Clock, MapPin } from "lucide-react";
 export interface Match {
     id: string;
     opponent: string;
+    opponentShortName?: string;
     opponentLogo?: string | null;
     homeTeamName?: string;
+    homeTeamShortName?: string;
     homeTeamLogo?: string | null;
     date: Date;
     location: string;
