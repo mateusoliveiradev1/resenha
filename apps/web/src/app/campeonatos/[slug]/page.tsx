@@ -84,6 +84,10 @@ function getFormLabel(result: RecentFormResult) {
     }
 }
 
+function getDisplayRecentForm(results: RecentFormResult[]) {
+    return [...results].reverse();
+}
+
 function getDateKeyInSaoPaulo(date: Date) {
     return new Intl.DateTimeFormat("en-CA", {
         timeZone: DISPLAY_TIMEZONE,
@@ -296,12 +300,12 @@ function StandingsPanel({
                                         <th className="h-12 px-3 py-3 align-middle text-xs uppercase tracking-[0.18em]">GC</th>
                                         <th className="h-12 px-3 py-3 align-middle text-xs uppercase tracking-[0.18em]">SG</th>
                                         <th className="h-12 px-3 py-3 align-middle text-xs uppercase tracking-[0.18em]">%</th>
-                                        <th className="h-12 px-3 py-3 align-middle text-xs uppercase tracking-[0.18em]">Forma</th>
+                                        <th className="h-12 px-3 py-3 align-middle text-xs uppercase tracking-[0.18em]">Ult. jogos</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {standings.map((row) => {
-                                        const recentForm = recentFormMap.get(row.clubId) ?? [];
+                                        const recentForm = getDisplayRecentForm(recentFormMap.get(row.clubId) ?? []);
 
                                         return (
                                             <tr key={`${row.clubId}-scroll`} className="h-16 border-t border-navy-800 bg-navy-900/60 text-cream-100 transition-colors hover:bg-navy-900/90">
@@ -365,13 +369,13 @@ function StandingsPanel({
                                 <th className="px-2 py-3 text-xs uppercase tracking-[0.18em]">GC</th>
                                 <th className="px-2 py-3 text-xs uppercase tracking-[0.18em]">SG</th>
                                 <th className="px-2 py-3 text-xs uppercase tracking-[0.18em]">%</th>
-                                <th className="px-4 py-3 text-xs uppercase tracking-[0.18em]">Forma</th>
+                                <th className="px-4 py-3 text-xs uppercase tracking-[0.18em]">Ult. jogos</th>
                             </tr>
                         </thead>
                         <tbody>
                             {standings.map((row) => {
                                 const positionDelta = positionDeltaMap.get(row.clubId) ?? 0;
-                                const recentForm = recentFormMap.get(row.clubId) ?? [];
+                                const recentForm = getDisplayRecentForm(recentFormMap.get(row.clubId) ?? []);
 
                                 return (
                                     <tr key={row.clubId} className="border-t border-navy-800 bg-navy-900/60 text-cream-100 transition-colors hover:bg-navy-900/90">
