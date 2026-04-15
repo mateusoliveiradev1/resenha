@@ -406,7 +406,7 @@ export function CompetitionSchedulePanel({
                     <div className="rounded-3xl border border-dashed border-navy-800 bg-navy-900/20 px-6 py-16 text-center">
                         <h2 className="font-display text-2xl font-bold text-cream-100">Nenhuma partida cadastrada</h2>
                         <p className="mt-3 text-sm text-cream-300">
-                            Assim que os confrontos forem lancados no admin, a agenda da competicao aparece aqui.
+                            Assim que os confrontos forem definidos, a agenda completa da competicao aparece aqui.
                         </p>
                     </div>
                 )}

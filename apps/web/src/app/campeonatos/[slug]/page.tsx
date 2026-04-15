@@ -65,11 +65,22 @@ function getRecentFormMap(
 function getFormDotClasses(result: RecentFormResult) {
     switch (result) {
         case "W":
-            return "bg-emerald-400";
+            return "bg-emerald-400 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]";
         case "L":
-            return "bg-red-400";
+            return "bg-red-400 shadow-[0_0_0_4px_rgba(248,113,113,0.12)]";
         default:
-            return "bg-gold-300";
+            return "bg-slate-400 shadow-[0_0_0_4px_rgba(148,163,184,0.14)]";
+    }
+}
+
+function getFormLabel(result: RecentFormResult) {
+    switch (result) {
+        case "W":
+            return "Vitoria";
+        case "L":
+            return "Derrota";
+        default:
+            return "Empate";
     }
 }
 
@@ -220,6 +231,20 @@ function StandingsPanel({
                     <p className="mt-3 text-sm leading-7 text-cream-300">
                         {description}
                     </p>
+                    <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-cream-300/75">
+                        <span className="inline-flex items-center gap-2">
+                            <span className={`h-2.5 w-2.5 rounded-full ${getFormDotClasses("W")}`} />
+                            Vitoria
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                            <span className={`h-2.5 w-2.5 rounded-full ${getFormDotClasses("D")}`} />
+                            Empate
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                            <span className={`h-2.5 w-2.5 rounded-full ${getFormDotClasses("L")}`} />
+                            Derrota
+                        </span>
+                    </div>
                 </div>
 
                 <div className="w-full max-w-full overflow-hidden rounded-3xl border border-navy-800 2xl:hidden">
@@ -271,7 +296,7 @@ function StandingsPanel({
                                         <th className="h-12 px-3 py-3 align-middle text-xs uppercase tracking-[0.18em]">GC</th>
                                         <th className="h-12 px-3 py-3 align-middle text-xs uppercase tracking-[0.18em]">SG</th>
                                         <th className="h-12 px-3 py-3 align-middle text-xs uppercase tracking-[0.18em]">%</th>
-                                        <th className="h-12 px-3 py-3 align-middle text-xs uppercase tracking-[0.18em]">Ult. jogos</th>
+                                        <th className="h-12 px-3 py-3 align-middle text-xs uppercase tracking-[0.18em]">Forma</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -279,7 +304,7 @@ function StandingsPanel({
                                         const recentForm = recentFormMap.get(row.clubId) ?? [];
 
                                         return (
-                                            <tr key={`${row.clubId}-scroll`} className="h-16 border-t border-navy-800 bg-navy-900/60 text-cream-100">
+                                            <tr key={`${row.clubId}-scroll`} className="h-16 border-t border-navy-800 bg-navy-900/60 text-cream-100 transition-colors hover:bg-navy-900/90">
                                                 <td className="h-16 whitespace-nowrap px-3 py-4 align-middle">{row.points}</td>
                                                 <td className="h-16 whitespace-nowrap px-3 py-4 align-middle">{row.played}</td>
                                                 <td className="h-16 whitespace-nowrap px-3 py-4 align-middle">{row.wins}</td>
@@ -295,6 +320,7 @@ function StandingsPanel({
                                                             <span
                                                                 key={`${row.clubId}-mobile-${index}`}
                                                                 className={`h-2.5 w-2.5 rounded-full ${getFormDotClasses(result)}`}
+                                                                title={getFormLabel(result)}
                                                             />
                                                         )) : (
                                                             <span className="text-xs text-cream-300/70">Sem jogos</span>
@@ -339,7 +365,7 @@ function StandingsPanel({
                                 <th className="px-2 py-3 text-xs uppercase tracking-[0.18em]">GC</th>
                                 <th className="px-2 py-3 text-xs uppercase tracking-[0.18em]">SG</th>
                                 <th className="px-2 py-3 text-xs uppercase tracking-[0.18em]">%</th>
-                                <th className="px-4 py-3 text-xs uppercase tracking-[0.18em]">Ult. jogos</th>
+                                <th className="px-4 py-3 text-xs uppercase tracking-[0.18em]">Forma</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -348,7 +374,7 @@ function StandingsPanel({
                                 const recentForm = recentFormMap.get(row.clubId) ?? [];
 
                                 return (
-                                    <tr key={row.clubId} className="border-t border-navy-800 bg-navy-900/60 text-cream-100">
+                                    <tr key={row.clubId} className="border-t border-navy-800 bg-navy-900/60 text-cream-100 transition-colors hover:bg-navy-900/90">
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-display text-lg font-bold">{row.position}</span>
@@ -396,7 +422,7 @@ function StandingsPanel({
                                                     <span
                                                         key={`${row.clubId}-${index}`}
                                                         className={`h-2.5 w-2.5 rounded-full ${getFormDotClasses(result)}`}
-                                                        title={result === "W" ? "Vitoria" : result === "L" ? "Derrota" : "Empate"}
+                                                        title={getFormLabel(result)}
                                                     />
                                                 )) : (
                                                     <span className="text-xs text-cream-300/70">Sem jogos</span>
@@ -485,8 +511,8 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
                 title: group.name,
                 description:
                     index === 0
-                        ? "Cada grupo e recalculado automaticamente conforme os placares salvos no admin."
-                        : "Posicao, aproveitamento e ultimos jogos atualizados automaticamente.",
+                        ? "Recorte do grupo com pontuacao, saldo e forma recente de cada clube."
+                        : "Leitura rapida da disputa dentro do grupo.",
                 standings: groupStandings,
                 recentForm: getRecentFormMap(presentedMatches, championship.id, group.id),
                 positionDeltaMap: getPositionDeltaMap({
@@ -502,10 +528,10 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
         : [
             {
                 id: "overall",
-                badgeLabel: "Tabela",
-                title: "Classificacao automatica",
+                badgeLabel: "Classificacao",
+                title: "Tabela da competicao",
                 description:
-                    "Pontos, saldo, vitorias e ordem da tabela recalculados a partir dos placares lancados no admin.",
+                    "Pontos, saldo e forma recente para acompanhar quem sobe, quem cai e quem sustenta a campanha.",
                 standings,
                 recentForm: recentFormMap,
                 positionDeltaMap: standingsPositionDeltaMap,
@@ -528,7 +554,7 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
                 <section className="overflow-hidden rounded-[2rem] border border-navy-800 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.22),_transparent_32%),linear-gradient(180deg,rgba(10,22,40,0.96),rgba(6,14,26,1))] px-6 py-8 shadow-[0_28px_60px_rgba(0,0,0,0.24)] sm:px-8 lg:px-12 lg:py-12">
                     <div className="max-w-3xl">
                         <Badge variant="gold" className="mb-4">
-                            Competicao automatizada
+                            Painel do campeonato
                         </Badge>
                         <h1 className="font-display text-4xl font-bold tracking-tight text-cream-100 sm:text-5xl">
                             {championship.name}
