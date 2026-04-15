@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { db } from "@resenha/db";
 import { championships, championshipGroups, championshipParticipants } from "@resenha/db/schema";
 import {
@@ -146,45 +147,74 @@ export async function saveChampionshipParticipants(data: SaveChampionshipPartici
     try {
         const parsed = SaveChampionshipParticipantsSchema.parse(data);
 
-        await db.transaction(async (tx) => {
-            await tx.delete(championshipParticipants).where(eq(championshipParticipants.championshipId, parsed.championshipId));
-            await tx.delete(championshipGroups).where(eq(championshipGroups.championshipId, parsed.championshipId));
+        const preparedGroups = parsed.groups.map((group, index) => ({
+            id: randomUUID(),
+            championshipId: parsed.championshipId,
+            name: group.name.trim(),
+            phaseLabel: group.phaseLabel?.trim() || "FASE DE GRUPOS",
+            displayOrder: index,
+            clubIds: group.clubIds,
+        }));
 
-            const clubGroupAssignments = new Map<string, string>();
+        const clubGroupAssignments = new Map<string, string>();
 
-            if (parsed.groups.length > 0) {
-                const insertedGroups = await tx
-                    .insert(championshipGroups)
-                    .values(
-                        parsed.groups.map((group, index) => ({
-                            championshipId: parsed.championshipId,
-                            name: group.name.trim(),
-                            phaseLabel: group.phaseLabel?.trim() || "FASE DE GRUPOS",
-                            displayOrder: index,
-                        }))
-                    )
-                    .returning({
-                        id: championshipGroups.id,
-                    });
+        preparedGroups.forEach((group) => {
+            group.clubIds.forEach((clubId) => {
+                clubGroupAssignments.set(clubId, group.id);
+            });
+        });
 
-                insertedGroups.forEach((group, index) => {
-                    parsed.groups[index]?.clubIds.forEach((clubId) => {
-                        clubGroupAssignments.set(clubId, group.id);
-                    });
-                });
-            }
+        const groupInsertValues = preparedGroups.map((group) => ({
+            id: group.id,
+            championshipId: group.championshipId,
+            name: group.name,
+            phaseLabel: group.phaseLabel,
+            displayOrder: group.displayOrder,
+        }));
 
-            if (parsed.clubIds.length > 0) {
-                await tx.insert(championshipParticipants).values(
+        const deleteParticipantsQuery = db
+            .delete(championshipParticipants)
+            .where(eq(championshipParticipants.championshipId, parsed.championshipId));
+        const deleteGroupsQuery = db
+            .delete(championshipGroups)
+            .where(eq(championshipGroups.championshipId, parsed.championshipId));
+
+        if (preparedGroups.length > 0 && parsed.clubIds.length > 0) {
+            await db.batch([
+                deleteParticipantsQuery,
+                deleteGroupsQuery,
+                db.insert(championshipGroups).values(groupInsertValues),
+                db.insert(championshipParticipants).values(
                     parsed.clubIds.map((clubId, index) => ({
                         championshipId: parsed.championshipId,
                         clubId,
                         championshipGroupId: clubGroupAssignments.get(clubId) ?? null,
                         displayOrder: index,
                     }))
-                );
-            }
-        });
+                ),
+            ]);
+        } else if (preparedGroups.length > 0) {
+            await db.batch([
+                deleteParticipantsQuery,
+                deleteGroupsQuery,
+                db.insert(championshipGroups).values(groupInsertValues),
+            ]);
+        } else if (parsed.clubIds.length > 0) {
+            await db.batch([
+                deleteParticipantsQuery,
+                deleteGroupsQuery,
+                db.insert(championshipParticipants).values(
+                    parsed.clubIds.map((clubId, index) => ({
+                        championshipId: parsed.championshipId,
+                        clubId,
+                        championshipGroupId: clubGroupAssignments.get(clubId) ?? null,
+                        displayOrder: index,
+                    }))
+                ),
+            ]);
+        } else {
+            await db.batch([deleteParticipantsQuery, deleteGroupsQuery]);
+        }
 
         await revalidateChampionshipPages(parsed.championshipId);
         revalidatePath("/partidas");

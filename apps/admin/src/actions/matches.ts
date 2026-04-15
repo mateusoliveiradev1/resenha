@@ -533,11 +533,12 @@ export async function upsertMatchStatsAction(data: UpsertMatchStatsInput) {
             throw new Error("Estatisticas de jogadores so podem ser salvas em partidas do Resenha.");
         }
 
-        await db.transaction(async (tx) => {
-            await tx.delete(matchStats).where(eq(matchStats.matchId, parsed.matchId));
-
-            if (parsed.stats.length > 0) {
-                await tx.insert(matchStats).values(
+        if (parsed.stats.length === 0) {
+            await db.delete(matchStats).where(eq(matchStats.matchId, parsed.matchId));
+        } else {
+            await db.batch([
+                db.delete(matchStats).where(eq(matchStats.matchId, parsed.matchId)),
+                db.insert(matchStats).values(
                     parsed.stats.map((item) => ({
                         matchId: parsed.matchId,
                         playerId: item.playerId,
@@ -547,9 +548,8 @@ export async function upsertMatchStatsAction(data: UpsertMatchStatsInput) {
                         redCards: item.redCards,
                         minutesPlayed: item.minutesPlayed ?? null
                     }))
-                );
-
-                await tx.insert(matchAppearances)
+                ),
+                db.insert(matchAppearances)
                     .values(
                         parsed.stats.map((item) => ({
                             matchId: parsed.matchId,
@@ -559,9 +559,9 @@ export async function upsertMatchStatsAction(data: UpsertMatchStatsInput) {
                     )
                     .onConflictDoNothing({
                         target: [matchAppearances.matchId, matchAppearances.playerId],
-                    });
-            }
-        });
+                    }),
+            ]);
+        }
 
         revalidateMatchPages(parsed.matchId);
 
