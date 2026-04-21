@@ -102,6 +102,7 @@ export async function createPost(data: CreatePostInput) {
             readingTimeMin,
             category: parsed.category,
             matchId: parsed.matchId ?? null,
+            editorialOfferingId: parsed.editorialOfferingId ?? null,
             isPublished: parsed.isPublished,
             publishedAt: parsed.isPublished ? now : null,
             updatedAt: now
@@ -148,6 +149,7 @@ export async function updatePost(id: string, data: UpdatePostInput) {
             readingTimeMin: calculateReadingTime(nextContent),
             category: parsed.category ?? currentPost.category,
             matchId: parsed.matchId !== undefined ? parsed.matchId ?? null : currentPost.matchId,
+            editorialOfferingId: parsed.editorialOfferingId !== undefined ? parsed.editorialOfferingId ?? null : currentPost.editorialOfferingId,
             isPublished: nextIsPublished,
             publishedAt: nextPublishedAt,
             updatedAt: new Date()

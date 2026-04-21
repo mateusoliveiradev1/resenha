@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const sponsorTierValues = ["MASTER", "OURO", "PRATA", "APOIO"] as const;
+export const sponsorRelationshipTypeValues = ["CLUB_SPONSOR", "SITE_PARTNER", "SUPPORTER", "BOTH"] as const;
 
 const isValidImageReference = (value: string) => {
     if (value.startsWith("/")) {
@@ -41,6 +42,7 @@ export const CreateSponsorSchema = z.object({
     websiteUrl: optionalWebsiteField,
     description: optionalTextField,
     tier: z.enum(sponsorTierValues),
+    relationshipType: z.enum(sponsorRelationshipTypeValues).default("CLUB_SPONSOR"),
     displayOrder: z.coerce.number().int().min(0).max(999).default(0),
     featuredOnHome: z.boolean().default(true),
     isActive: z.boolean().default(true),
@@ -49,5 +51,6 @@ export const CreateSponsorSchema = z.object({
 export const UpdateSponsorSchema = CreateSponsorSchema.partial();
 
 export type SponsorTier = (typeof sponsorTierValues)[number];
+export type SponsorRelationshipType = (typeof sponsorRelationshipTypeValues)[number];
 export type CreateSponsorInput = z.infer<typeof CreateSponsorSchema>;
 export type UpdateSponsorInput = z.infer<typeof UpdateSponsorSchema>;

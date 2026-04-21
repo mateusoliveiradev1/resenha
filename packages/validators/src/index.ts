@@ -7,3 +7,4 @@ export * from "./sponsor";
 export * from "./staff";
 export * from "./club";
 export * from "./championship";
+export * from "./monetization";

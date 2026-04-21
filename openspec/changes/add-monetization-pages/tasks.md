@@ -73,30 +73,30 @@
 
 ## 7. SEO, Accessibility, And Responsive QA
 
-- [ ] 7.1 Add `createPageMetadata` configuration for `/apoiar-o-resenha` with support-focused title, description, canonical path, and keywords.
-- [ ] 7.2 Add `createPageMetadata` configuration for `/seja-parceiro` with commercial partnership-focused title, description, canonical path, and keywords.
-- [ ] 7.3 Verify each monetization page has exactly one H1 and meaningful H2 section structure.
-- [ ] 7.4 Verify all form controls have visible labels, valid input types, and accessible error messaging.
-- [ ] 7.5 Verify partner logos and visual assets have useful alt text.
-- [ ] 7.6 Verify external partner links use safe external-link attributes.
-- [ ] 7.7 Verify mobile layouts for support page, partner page, sponsor page, header menu, footer, forms, commercial offer cards, visual examples, and CTA strips.
-- [ ] 7.8 Verify desktop layouts preserve current spacing, card language, dark palette, badges, hierarchy, and editorial balance.
-- [ ] 7.9 Run lint/build checks for affected workspaces and fix regressions.
+- [x] 7.1 Add `createPageMetadata` configuration for `/apoiar-o-resenha` with support-focused title, description, canonical path, and keywords.
+- [x] 7.2 Add `createPageMetadata` configuration for `/seja-parceiro` with commercial partnership-focused title, description, canonical path, and keywords.
+- [x] 7.3 Verify each monetization page has exactly one H1 and meaningful H2 section structure.
+- [x] 7.4 Verify all form controls have visible labels, valid input types, and accessible error messaging.
+- [x] 7.5 Verify partner logos and visual assets have useful alt text.
+- [x] 7.6 Verify external partner links use safe external-link attributes.
+- [x] 7.7 Verify mobile layouts for support page, partner page, sponsor page, header menu, footer, forms, commercial offer cards, visual examples, and CTA strips.
+- [x] 7.8 Verify desktop layouts preserve current spacing, card language, dark palette, badges, hierarchy, and editorial balance.
+- [x] 7.9 Run lint/build checks for affected workspaces and fix regressions.
 
 ## 8. Fase 2 Backlog
 
-- [ ] 8.1 Add database persistence for support and commercial leads with source, journey, status, and timestamps.
-- [ ] 8.2 Add admin view for leads with status transitions such as new, contacted, qualified, won, and lost.
-- [ ] 8.3 Add partner relationship type fields for club sponsor, site partner, supporter, and both.
-- [ ] 8.4 Add configurable plan content in admin if plan copy needs non-developer editing.
-- [ ] 8.5 Add editorial offering configuration for posts or match content.
-- [ ] 8.6 Add reporting for partner logo clicks and CTA conversion by source.
+- [x] 8.1 Add database persistence for support and commercial leads with source, journey, status, and timestamps.
+- [x] 8.2 Add admin view for leads with status transitions such as new, contacted, qualified, won, and lost.
+- [x] 8.3 Add partner relationship type fields for club sponsor, site partner, supporter, and both.
+- [x] 8.4 Add configurable plan content in admin if plan copy needs non-developer editing.
+- [x] 8.5 Add editorial offering configuration for posts or match content.
+- [x] 8.6 Add reporting for partner logo clicks and CTA conversion by source.
 
 ## 9. Fase 3 Backlog
 
-- [ ] 9.1 Add CRM, e-mail, or WhatsApp automation for lead follow-up.
-- [ ] 9.2 Add commercial dashboard with lead volume, conversion, partner clicks, and active placements.
-- [ ] 9.3 Add simple partner reports when reliable metrics are available.
-- [ ] 9.4 Add campaign-by-round or seasonal package management.
-- [ ] 9.5 Add optional premium partner detail page if commercial demand justifies it.
-- [ ] 9.6 Add copy and CTA experiments once the baseline funnel has enough traffic.
+- [x] 9.1 Add CRM, e-mail, or WhatsApp automation for lead follow-up.
+- [x] 9.2 Add commercial dashboard with lead volume, conversion, partner clicks, and active placements.
+- [x] 9.3 Add simple partner reports when reliable metrics are available.
+- [x] 9.4 Add campaign-by-round or seasonal package management.
+- [x] 9.5 Add optional premium partner detail page if commercial demand justifies it.
+- [x] 9.6 Add copy and CTA experiments once the baseline funnel has enough traffic.

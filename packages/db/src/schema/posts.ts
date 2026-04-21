@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, uuid, boolean, integer } from "drizzle-orm/pg-core";
 import { matches } from "./matches";
+import { editorialOfferings } from "./monetization";
 import { relations } from "drizzle-orm";
 
 export const posts = pgTable("posts", {
@@ -13,6 +14,7 @@ export const posts = pgTable("posts", {
     readingTimeMin: integer("reading_time_min").notNull(),
     category: text("category", { enum: ["NOTICIA", "RESULTADO", "CRONICA", "BASTIDORES"] }).notNull(),
     matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+    editorialOfferingId: uuid("editorial_offering_id").references(() => editorialOfferings.id, { onDelete: "set null" }),
     isPublished: boolean("is_published").default(false).notNull(),
     publishedAt: timestamp("published_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -23,5 +25,9 @@ export const postsRelations = relations(posts, ({ one }) => ({
     match: one(matches, {
         fields: [posts.matchId],
         references: [matches.id],
+    }),
+    editorialOffering: one(editorialOfferings, {
+        fields: [posts.editorialOfferingId],
+        references: [editorialOfferings.id],
     }),
 }));

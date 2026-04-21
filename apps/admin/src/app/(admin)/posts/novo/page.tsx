@@ -39,6 +39,7 @@ export default function NovoPostPage() {
             author: "Admin",
             category: "NOTICIA",
             matchId: null,
+            editorialOfferingId: null,
             isPublished: false
         }
     });
@@ -63,6 +64,7 @@ export default function NovoPostPage() {
             author: data.author.trim(),
             coverImage: normalizeOptionalValue(data.coverImage),
             matchId: normalizeOptionalValue(data.matchId),
+            editorialOfferingId: normalizeOptionalValue(data.editorialOfferingId),
             isPublished: mode === "publish"
         });
 
@@ -151,6 +153,19 @@ export default function NovoPostPage() {
                                         })}
                                         error={!!errors.matchId}
                                         errorMessage={errors.matchId?.message}
+                                    />
+                                </div>
+
+                                <div className="sm:col-span-2">
+                                    <FormField
+                                        id="editorialOfferingId"
+                                        label="Oferecimento editorial (opcional)"
+                                        placeholder="Cole o ID de um oferecimento ativo em Comercial"
+                                        {...register("editorialOfferingId", {
+                                            setValueAs: (value) => normalizeOptionalValue(value)
+                                        })}
+                                        error={!!errors.editorialOfferingId}
+                                        errorMessage={errors.editorialOfferingId?.message}
                                     />
                                 </div>
                             </div>

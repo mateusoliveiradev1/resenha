@@ -24,6 +24,28 @@ function cleanPayload(payload: MonetizationEventPayload = {}) {
     return Object.fromEntries(Object.entries(payload).filter(([, value]) => value != null && value !== ""));
 }
 
+function persistMonetizationEvent(name: MonetizationEventName, payload: Record<string, unknown>) {
+    const body = JSON.stringify({ name, payload });
+
+    if ("sendBeacon" in navigator) {
+        const blob = new Blob([body], { type: "application/json" });
+
+        navigator.sendBeacon("/api/analytics/monetization", blob);
+        return;
+    }
+
+    void fetch("/api/analytics/monetization", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body,
+        keepalive: true
+    }).catch(() => {
+        // Analytics must never block the public journey.
+    });
+}
+
 export function trackMonetizationEvent(name: MonetizationEventName, payload: MonetizationEventPayload = {}) {
     if (typeof window === "undefined") {
         return;
@@ -47,4 +69,5 @@ export function trackMonetizationEvent(name: MonetizationEventName, payload: Mon
     });
     analyticsWindow.gtag?.("event", name, eventPayload);
     analyticsWindow.plausible?.(name, { props: eventPayload });
+    persistMonetizationEvent(name, eventPayload);
 }

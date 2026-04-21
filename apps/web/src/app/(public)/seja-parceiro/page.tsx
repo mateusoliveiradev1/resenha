@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge, Button, Card, CardContent, Container } from "@resenha/ui";
+import { db } from "@resenha/db";
+import { commercialOfferContents, copyCtaExperiments } from "@resenha/db/schema";
+import { asc, desc, eq } from "drizzle-orm";
 import type { LucideIcon } from "lucide-react";
 import {
     ArrowRight,
@@ -37,6 +40,11 @@ type PlacementItem = PartnerItem & {
 const commercialWhatsappMessage =
     "Oi, Resenha! Quero divulgar minha empresa no site do Resenha e entender onde ela pode aparecer.";
 const commercialWhatsappHref = `https://wa.me/?text=${encodeURIComponent(commercialWhatsappMessage)}`;
+const defaultHeroHeadline = "Divulgue sua empresa no site do Resenha";
+const defaultHeroDescription =
+    "Quem acompanha jogos, entrevistas, cronicas e parceiros do clube pode ver sua empresa e chamar voce pelo WhatsApp ou Instagram.";
+const defaultHeroSupportText =
+    "Comece simples: a gente mostra os espacos, combina onde sua empresa entra e publica dentro do visual do Resenha.";
 
 const partnerPlacements: PlacementItem[] = [
     {
@@ -254,6 +262,81 @@ const partnerFaqs: FaqItem[] = [
     }
 ];
 
+async function getCommercialOfferContent() {
+    let rows: Array<typeof commercialOfferContents.$inferSelect> = [];
+
+    try {
+        rows = await db.query.commercialOfferContents.findMany({
+            where: eq(commercialOfferContents.isActive, true),
+            orderBy: [asc(commercialOfferContents.slot), asc(commercialOfferContents.displayOrder)]
+        });
+    } catch {
+        return { offer: commercialOffer, addOns: commercialAddOns };
+    }
+    const baseOffer = rows.find((row) => row.slot === "base_offer");
+    const addOnRows = rows.filter((row) => row.slot === "addon");
+
+    const offer: CommercialOffer = baseOffer
+        ? {
+            badge: baseOffer.badge ?? undefined,
+            title: baseOffer.title,
+            audience: baseOffer.audience ?? undefined,
+            description: baseOffer.description,
+            inclusions: baseOffer.inclusions?.length ? baseOffer.inclusions : commercialOffer.inclusions,
+            note: baseOffer.note ?? undefined,
+            cta: {
+                label: baseOffer.ctaLabel ?? commercialOffer.cta?.label ?? "Quero aparecer no Resenha",
+                href: commercialWhatsappHref,
+                external: true
+            }
+        }
+        : commercialOffer;
+
+    const addOns: CommercialAddOn[] = addOnRows.length
+        ? addOnRows.map((row) => ({
+            title: row.title,
+            description: row.description,
+            badge: row.badge ?? undefined,
+            cta: {
+                label: row.ctaLabel ?? "Falar no WhatsApp",
+                href: commercialWhatsappHref,
+                external: true
+            }
+        }))
+        : commercialAddOns;
+
+    return { offer, addOns };
+}
+
+type ActiveHeroExperiment = typeof copyCtaExperiments.$inferSelect;
+
+function isExperimentInWindow(experiment: ActiveHeroExperiment, now: Date) {
+    const startsOk = !experiment.startsAt || experiment.startsAt <= now;
+    const endsOk = !experiment.endsAt || experiment.endsAt >= now;
+
+    return startsOk && endsOk;
+}
+
+async function getActiveHeroExperiment() {
+    let rows: ActiveHeroExperiment[] = [];
+
+    try {
+        rows = await db.query.copyCtaExperiments.findMany({
+            where: eq(copyCtaExperiments.isActive, true),
+            orderBy: [desc(copyCtaExperiments.trafficWeight), asc(copyCtaExperiments.createdAt)]
+        });
+    } catch {
+        return null;
+    }
+    const now = new Date();
+
+    return rows.find((row) =>
+        row.surface === "partner_page_hero" &&
+        row.journey === "commercial" &&
+        isExperimentInWindow(row, now)
+    ) ?? null;
+}
+
 export const metadata: Metadata = createPageMetadata({
     title: "Seja parceiro",
     description:
@@ -268,35 +351,59 @@ export const metadata: Metadata = createPageMetadata({
     ]
 });
 
+export const dynamic = "force-dynamic";
+
 function CommercialWhatsappButton({
     label = "Falar no WhatsApp",
+    href = commercialWhatsappHref,
     source,
-    className
+    className,
+    experiment
 }: {
     label?: string;
+    href?: string;
     source: string;
     className?: string;
+    experiment?: ActiveHeroExperiment | null;
 }) {
+    const isExternal = /^https?:\/\//.test(href);
+    const commonProps = {
+        "data-monetization-event": "cta_click",
+        "data-label": label,
+        "data-journey": "commercial",
+        "data-source": source,
+        "data-destination": href,
+        "data-experiment-key": experiment?.experimentKey,
+        "data-experiment-variant": experiment?.variantLabel
+    };
+
     return (
         <Button asChild size="lg" className={className}>
-            <a
-                href={commercialWhatsappHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-monetization-event="cta_click"
-                data-label={label}
-                data-journey="commercial"
-                data-source={source}
-                data-destination={commercialWhatsappHref}
-            >
-                {label}
-                <MessageCircle className="ml-2 h-4 w-4" aria-hidden="true" />
-            </a>
+            {isExternal ? (
+                <a href={href} target="_blank" rel="noopener noreferrer" {...commonProps}>
+                    {label}
+                    <MessageCircle className="ml-2 h-4 w-4" aria-hidden="true" />
+                </a>
+            ) : (
+                <Link href={href} {...commonProps}>
+                    {label}
+                    <MessageCircle className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
+            )}
         </Button>
     );
 }
 
-export default function SejaParceiroPage() {
+export default async function SejaParceiroPage() {
+    const [resolvedCommercialContent, heroExperiment] = await Promise.all([
+        getCommercialOfferContent(),
+        getActiveHeroExperiment()
+    ]);
+    const heroHeadline = heroExperiment?.headline ?? defaultHeroHeadline;
+    const heroDescription = heroExperiment?.supportingCopy ?? defaultHeroDescription;
+    const heroCtaLabel = heroExperiment?.ctaLabel ?? "Falar no WhatsApp";
+    const heroCtaHref = heroExperiment?.destination ?? commercialWhatsappHref;
+
     return (
         <div className="min-h-screen bg-navy-950 py-16 lg:py-20">
             <Container>
@@ -308,17 +415,17 @@ export default function SejaParceiroPage() {
                             Para comercios da regiao
                         </Badge>
                         <h1 className="font-display text-4xl font-bold tracking-tight text-cream-100 sm:text-5xl lg:text-6xl">
-                            Divulgue sua empresa no site do Resenha
+                            {heroHeadline}
                         </h1>
                         <p className="mt-5 max-w-3xl text-base leading-8 text-cream-300 md:text-lg">
-                            Quem acompanha jogos, entrevistas, cronicas e parceiros do clube pode ver sua empresa e chamar voce pelo WhatsApp ou Instagram.
+                            {heroDescription}
                         </p>
                         <p className="mt-4 max-w-2xl text-sm leading-7 text-cream-300">
-                            Comece simples: a gente mostra os espacos, combina onde sua empresa entra e publica dentro do visual do Resenha.
+                            {defaultHeroSupportText}
                         </p>
 
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                            <CommercialWhatsappButton source="partner_page_hero" />
+                            <CommercialWhatsappButton source="partner_page_hero" label={heroCtaLabel} href={heroCtaHref} experiment={heroExperiment} />
                             <Button asChild variant="outline" size="lg">
                                 <Link
                                     href="#onde-aparece"
@@ -561,7 +668,7 @@ export default function SejaParceiroPage() {
                         </p>
                     </div>
 
-                    <CommercialOfferCard offer={commercialOffer} addOns={commercialAddOns} source="partner_page_offer" />
+                    <CommercialOfferCard offer={resolvedCommercialContent.offer} addOns={resolvedCommercialContent.addOns} source="partner_page_offer" />
 
                     <div className="mt-6 flex flex-col gap-3 rounded-[1.5rem] border border-gold-400/20 bg-gold-400/10 p-5 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm leading-7 text-cream-300">

@@ -24,6 +24,8 @@ function getEventPayload(element: HTMLElement) {
         url: element.dataset.destination,
         plan_name: element.dataset.planName || element.dataset.offerName,
         offer_name: element.dataset.offerName,
+        experiment_key: element.dataset.experimentKey,
+        experiment_variant: element.dataset.experimentVariant,
         page: element.dataset.page,
         question: element.dataset.question
     };

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button, DataTable, type Column, Badge, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { deleteSponsor } from "@/app/actions/sponsors";
 import { Edit2, Handshake, Loader2, Trash2 } from "lucide-react";
-import type { SponsorTier } from "@resenha/validators";
+import type { SponsorRelationshipType, SponsorTier } from "@resenha/validators";
 
 interface SponsorData {
     id: string;
@@ -14,6 +14,7 @@ interface SponsorData {
     logoUrl: string | null;
     websiteUrl: string | null;
     tier: SponsorTier;
+    relationshipType: SponsorRelationshipType;
     displayOrder: number;
     featuredOnHome: boolean;
     isActive: boolean;
@@ -24,6 +25,13 @@ const tierTone: Record<SponsorTier, "gold" | "accent" | "outline"> = {
     OURO: "accent",
     PRATA: "outline",
     APOIO: "outline"
+};
+
+const relationshipLabels: Record<SponsorRelationshipType, string> = {
+    CLUB_SPONSOR: "CLUBE",
+    SITE_PARTNER: "SITE",
+    SUPPORTER: "APOIADOR",
+    BOTH: "CLUBE + SITE"
 };
 
 export function PatrocinadoresTable({ data }: { data: SponsorData[] }) {
@@ -90,7 +98,12 @@ export function PatrocinadoresTable({ data }: { data: SponsorData[] }) {
             header: "Tier",
             accessorKey: "tier",
             sortable: true,
-            cell: (item) => <Badge variant={tierTone[item.tier]}>{item.tier}</Badge>,
+            cell: (item) => (
+                <div className="flex flex-wrap gap-2">
+                    <Badge variant={tierTone[item.tier]}>{item.tier}</Badge>
+                    <Badge variant="outline">{relationshipLabels[item.relationshipType]}</Badge>
+                </div>
+            ),
         },
         {
             header: "Home",
@@ -183,6 +196,7 @@ export function PatrocinadoresTable({ data }: { data: SponsorData[] }) {
                                 <p className="mt-1 text-sm text-cream-300 break-all">{item.websiteUrl ?? "Sem link externo"}</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                     <Badge variant={tierTone[item.tier]}>{item.tier}</Badge>
+                                    <Badge variant="outline">{relationshipLabels[item.relationshipType]}</Badge>
                                     <Badge variant={item.featuredOnHome ? "accent" : "outline"}>
                                         {item.featuredOnHome ? "EM DESTAQUE" : "SO PAGINA"}
                                     </Badge>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, Card } from "@resenha/ui";
-import { Globe, Handshake, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import { Globe, Handshake, Mail, Megaphone, ShieldCheck, Sparkles } from "lucide-react";
 
 const settingCards = [
     {
@@ -16,6 +16,13 @@ const settingCards = [
         icon: Handshake,
         href: "/patrocinadores",
         cta: "Abrir patrocinadores"
+    },
+    {
+        title: "Comercial do site",
+        description: "Configure oferta, extras e blocos de oferecimento usados nas paginas e posts.",
+        icon: Megaphone,
+        href: "/comercial",
+        cta: "Abrir comercial"
     },
     {
         title: "Contato e canais",

@@ -25,6 +25,7 @@ export const CreatePostSchema = z.object({
     author: z.string().min(2),
     category: z.enum(["NOTICIA", "RESULTADO", "CRONICA", "BASTIDORES"]),
     matchId: z.string().uuid().optional().nullable(),
+    editorialOfferingId: z.string().uuid().optional().nullable(),
     isPublished: z.boolean().default(false),
 });
 

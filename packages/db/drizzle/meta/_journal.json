@@ -43,6 +43,20 @@
       "when": 1775847984327,
       "tag": "0005_slim_silver_samurai",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776766012481,
+      "tag": "0006_clumsy_northstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776767710195,
+      "tag": "0007_monetization_phase3",
+      "breakpoints": true
     }
   ]
 }

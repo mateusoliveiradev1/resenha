@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { db } from "@resenha/db";
-import { posts } from "@resenha/db/schema";
+import { posts, premiumPartnerPages } from "@resenha/db/schema";
 import { eq } from "drizzle-orm";
 import { getAbsoluteUrl } from "@/lib/seo";
 
@@ -18,6 +18,8 @@ const staticRoutes: Array<{
     { path: "/blog", changeFrequency: "daily", priority: 0.88 },
     { path: "/galeria", changeFrequency: "weekly", priority: 0.82 },
     { path: "/patrocinadores", changeFrequency: "weekly", priority: 0.72 },
+    { path: "/apoiar-o-resenha", changeFrequency: "monthly", priority: 0.7 },
+    { path: "/seja-parceiro", changeFrequency: "monthly", priority: 0.7 },
     { path: "/historia", changeFrequency: "monthly", priority: 0.7 },
     { path: "/diretoria", changeFrequency: "monthly", priority: 0.68 },
     { path: "/titulos", changeFrequency: "monthly", priority: 0.66 },
@@ -26,12 +28,31 @@ const staticRoutes: Array<{
     { path: "/termos-de-uso", changeFrequency: "yearly", priority: 0.25 }
 ];
 
+async function getPublishedPremiumPartnerPages() {
+    try {
+        return await db.select({
+            slug: premiumPartnerPages.slug,
+            updatedAt: premiumPartnerPages.updatedAt,
+            publishedAt: premiumPartnerPages.publishedAt,
+            createdAt: premiumPartnerPages.createdAt
+        }).from(premiumPartnerPages).where(eq(premiumPartnerPages.isActive, true));
+    } catch {
+        return [];
+    }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const now = new Date();
 
-    const publishedPosts = await db.query.posts.findMany({
-        where: eq(posts.isPublished, true)
-    });
+    const [publishedPosts, publishedPremiumPages] = await Promise.all([
+        db.select({
+            slug: posts.slug,
+            updatedAt: posts.updatedAt,
+            publishedAt: posts.publishedAt,
+            createdAt: posts.createdAt
+        }).from(posts).where(eq(posts.isPublished, true)),
+        getPublishedPremiumPartnerPages()
+    ]);
 
     const staticEntries: MetadataRoute.Sitemap = staticRoutes.map((route) => ({
         url: getAbsoluteUrl(route.path),
@@ -47,5 +68,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8
     }));
 
-    return [...staticEntries, ...blogEntries];
+    const premiumPartnerEntries: MetadataRoute.Sitemap = publishedPremiumPages.map((page) => ({
+        url: getAbsoluteUrl(`/parceiros/${page.slug}`),
+        lastModified: page.updatedAt ?? page.publishedAt ?? page.createdAt,
+        changeFrequency: "monthly",
+        priority: 0.62
+    }));
+
+    return [...staticEntries, ...blogEntries, ...premiumPartnerEntries];
 }

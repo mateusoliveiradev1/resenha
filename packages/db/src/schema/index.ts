@@ -9,3 +9,4 @@ export * from "./posts";
 export * from "./gallery";
 export * from "./staff";
 export * from "./sponsors";
+export * from "./monetization";

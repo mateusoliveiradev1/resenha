@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { db } from "@resenha/db";
+import { monetizationLeads } from "@resenha/db/schema";
 
 type LeadJourney = "support" | "commercial";
 
@@ -16,6 +18,12 @@ function getString(values: Record<string, unknown>, key: string) {
 
 function getDigits(value: string) {
     return value.replace(/\D/g, "");
+}
+
+function getOptionalString(values: Record<string, unknown>, key: string) {
+    const value = getString(values, key);
+
+    return value ? value : null;
 }
 
 function validateLead(body: LeadRequestBody) {
@@ -76,17 +84,48 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: false, errors }, { status: 422 });
     }
 
-    // Fase 1 destination: validate and accept the inquiry without persistence.
-    // A database/CRM destination is intentionally left for the planned Fase 2.
+    const values = body.values ?? {};
+    const journey: LeadJourney = body.variant === "commercial" ? "commercial" : "support";
+    const source = getString({ source: body.source }, "source") || "lead_form";
+    const now = new Date();
+
+    const [lead] = await db.insert(monetizationLeads).values({
+        journey,
+        source,
+        status: "NEW",
+        name: getString(values, "name"),
+        company: getOptionalString(values, "company"),
+        whatsapp: getString(values, "whatsapp"),
+        email: getOptionalString(values, "email"),
+        city: getOptionalString(values, "city"),
+        supportType: getOptionalString(values, "supportType"),
+        supportDescription: getOptionalString(values, "supportDescription"),
+        advertisingOption: getOptionalString(values, "advertisingOption"),
+        businessType: getOptionalString(values, "businessType"),
+        instagramOrSite: getOptionalString(values, "instagramOrSite"),
+        message: getOptionalString(values, "message"),
+        rawPayload: values,
+        createdAt: now,
+        updatedAt: now
+    }).returning({
+        id: monetizationLeads.id,
+        journey: monetizationLeads.journey,
+        source: monetizationLeads.source,
+        status: monetizationLeads.status,
+        createdAt: monetizationLeads.createdAt
+    });
+
     return NextResponse.json(
         {
             ok: true,
             lead: {
-                journey: body.variant,
-                source: body.source ?? "lead_form",
-                receivedAt: new Date().toISOString()
+                id: lead.id,
+                journey: lead.journey,
+                source: lead.source,
+                status: lead.status,
+                receivedAt: lead.createdAt.toISOString()
             }
         },
-        { status: 202 }
+        { status: 201 }
     );
 }

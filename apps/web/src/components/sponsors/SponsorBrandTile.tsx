@@ -26,7 +26,7 @@ export function SponsorBrandTile({ name, logoUrl, variant = "compact" }: Sponsor
             {logoUrl ? (
                 <Image
                     src={logoUrl}
-                    alt={name}
+                    alt={`Logo de ${name}`}
                     fill
                     unoptimized={shouldBypassNextImageOptimization(logoUrl)}
                     className={isCompact ? "object-contain p-2" : "object-contain p-4"}

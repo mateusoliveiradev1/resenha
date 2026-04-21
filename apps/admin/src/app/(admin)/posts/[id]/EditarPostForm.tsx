@@ -19,6 +19,7 @@ interface PostRecord {
     category: "NOTICIA" | "RESULTADO" | "CRONICA" | "BASTIDORES";
     coverImage?: string | null;
     matchId?: string | null;
+    editorialOfferingId?: string | null;
     isPublished: boolean;
 }
 
@@ -51,6 +52,7 @@ export function EditarPostForm({ post }: { post: PostRecord }) {
             category: post.category,
             coverImage: post.coverImage ?? null,
             matchId: post.matchId ?? null,
+            editorialOfferingId: post.editorialOfferingId ?? null,
             isPublished: post.isPublished
         }
     });
@@ -75,6 +77,7 @@ export function EditarPostForm({ post }: { post: PostRecord }) {
             author: data.author?.trim(),
             coverImage: normalizeOptionalValue(data.coverImage),
             matchId: normalizeOptionalValue(data.matchId),
+            editorialOfferingId: normalizeOptionalValue(data.editorialOfferingId),
             isPublished: mode === "publish"
         });
 
@@ -187,6 +190,19 @@ export function EditarPostForm({ post }: { post: PostRecord }) {
                                         })}
                                         error={!!errors.matchId}
                                         errorMessage={errors.matchId?.message}
+                                    />
+                                </div>
+
+                                <div className="sm:col-span-2">
+                                    <FormField
+                                        id="editorialOfferingId"
+                                        label="Oferecimento editorial (opcional)"
+                                        placeholder="Cole o ID de um oferecimento ativo em Comercial"
+                                        {...register("editorialOfferingId", {
+                                            setValueAs: (value) => normalizeOptionalValue(value)
+                                        })}
+                                        error={!!errors.editorialOfferingId}
+                                        errorMessage={errors.editorialOfferingId?.message}
                                     />
                                 </div>
                             </div>

@@ -8,8 +8,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
     CreateSponsorSchema,
+    sponsorRelationshipTypeValues,
     sponsorTierValues,
     type CreateSponsorInput,
+    type SponsorRelationshipType,
     type SponsorTier
 } from "@resenha/validators";
 import { Button, FormField, Card, CardContent } from "@resenha/ui";
@@ -22,6 +24,13 @@ const tierLabels: Record<SponsorTier, string> = {
     OURO: "Ouro",
     PRATA: "Prata",
     APOIO: "Apoio"
+};
+
+const relationshipLabels: Record<SponsorRelationshipType, string> = {
+    CLUB_SPONSOR: "Patrocinador do clube",
+    SITE_PARTNER: "Parceiro do site",
+    SUPPORTER: "Apoiador",
+    BOTH: "Clube e site"
 };
 
 export default function NovoPatrocinadorPage() {
@@ -39,6 +48,7 @@ export default function NovoPatrocinadorPage() {
         resolver: zodResolver(CreateSponsorSchema),
         defaultValues: {
             tier: "APOIO",
+            relationshipType: "CLUB_SPONSOR",
             displayOrder: 0,
             featuredOnHome: true,
             isActive: true,
@@ -107,6 +117,24 @@ export default function NovoPatrocinadorPage() {
                                         ))}
                                     </select>
                                     {errors.tier && <p className="text-[0.8rem] font-medium text-red-500">{errors.tier.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor="relationshipType" className="text-sm font-medium leading-none text-cream-100">
+                                        Tipo de relacao
+                                    </label>
+                                    <select
+                                        id="relationshipType"
+                                        {...register("relationshipType")}
+                                        className="flex h-10 w-full rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm text-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                    >
+                                        {sponsorRelationshipTypeValues.map((type) => (
+                                            <option key={type} value={type}>
+                                                {relationshipLabels[type]}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.relationshipType && <p className="text-[0.8rem] font-medium text-red-500">{errors.relationshipType.message}</p>}
                                 </div>
 
                                 <FormField

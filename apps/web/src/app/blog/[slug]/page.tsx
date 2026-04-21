@@ -8,6 +8,7 @@ import { db } from "@resenha/db";
 import { posts } from "@resenha/db/schema";
 import { Badge, Button, Container, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
+import { OfferBlock } from "@/components/monetization/OfferBlock";
 import { DEFAULT_OG_IMAGE, SITE_NAME, createPageMetadata, getAbsoluteUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,8 @@ async function getPublishedPost(slug: string) {
     return db.query.posts.findFirst({
         where: and(eq(posts.slug, slug), eq(posts.isPublished, true)),
         with: {
-            match: true
+            match: true,
+            editorialOffering: true
         }
     });
 }
@@ -203,6 +205,18 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
                                     ))
                                 )}
                             </div>
+                            {post.editorialOffering && post.editorialOffering.isActive ? (
+                                <OfferBlock
+                                    partnerName={post.editorialOffering.partnerName}
+                                    label={post.editorialOffering.label}
+                                    title={post.editorialOffering.title ?? undefined}
+                                    description={post.editorialOffering.description ?? undefined}
+                                    href={post.editorialOffering.href ?? undefined}
+                                    linkLabel={post.editorialOffering.linkLabel}
+                                    source="blog_post_offering"
+                                    className="mt-10"
+                                />
+                            ) : null}
                         </div>
                     </div>
                 </div>

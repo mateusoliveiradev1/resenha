@@ -44,6 +44,7 @@ export async function createSponsor(data: CreateSponsorInput) {
             websiteUrl: normalizeText(parsed.websiteUrl),
             description: normalizeText(parsed.description),
             tier: parsed.tier,
+            relationshipType: parsed.relationshipType,
             displayOrder: parsed.displayOrder,
             featuredOnHome: parsed.featuredOnHome,
             isActive: parsed.isActive,
@@ -68,6 +69,7 @@ export async function updateSponsor(id: string, data: UpdateSponsorInput) {
         if (parsed.websiteUrl !== undefined) updatePayload.websiteUrl = normalizeText(parsed.websiteUrl);
         if (parsed.description !== undefined) updatePayload.description = normalizeText(parsed.description);
         if (parsed.tier !== undefined) updatePayload.tier = parsed.tier;
+        if (parsed.relationshipType !== undefined) updatePayload.relationshipType = parsed.relationshipType;
         if (parsed.displayOrder !== undefined) updatePayload.displayOrder = parsed.displayOrder;
         if (parsed.featuredOnHome !== undefined) updatePayload.featuredOnHome = parsed.featuredOnHome;
         if (parsed.isActive !== undefined) updatePayload.isActive = parsed.isActive;

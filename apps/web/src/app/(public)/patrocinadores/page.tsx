@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Button, Card, Container } from "@resenha/ui";
 import { db } from "@resenha/db";
-import { sponsors } from "@resenha/db/schema";
+import { premiumPartnerPages, sponsors } from "@resenha/db/schema";
 import { asc, eq } from "drizzle-orm";
-import type { SponsorTier } from "@resenha/validators";
+import type { SponsorRelationshipType, SponsorTier } from "@resenha/validators";
 import { ArrowRight, Handshake, HeartHandshake, Star } from "lucide-react";
 import { SponsorBrandTile } from "@/components/sponsors/SponsorBrandTile";
-import { getSponsorPlacementLabel, getSponsorSupportCopy } from "@/components/sponsors/sponsorBrand";
+import { getSponsorSupportCopy } from "@/components/sponsors/sponsorBrand";
 import { createPageMetadata } from "@/lib/seo";
 
 const tierOrder: SponsorTier[] = ["MASTER", "OURO", "PRATA", "APOIO"];
@@ -28,6 +28,20 @@ const tierRelationshipBadges: Record<SponsorTier, string[]> = {
     OURO: ["Apoio institucional", "Parceiro da cobertura"],
     PRATA: ["Apoio ao projeto", "Presenca no site"],
     APOIO: ["Apoiador", "Comercio local"]
+};
+
+const relationshipLabels: Record<SponsorRelationshipType, string> = {
+    CLUB_SPONSOR: "Apoio ao clube",
+    SITE_PARTNER: "Parceiro do site",
+    SUPPORTER: "Apoiador",
+    BOTH: "Clube e site"
+};
+
+const relationshipCopy: Record<SponsorRelationshipType, string> = {
+    CLUB_SPONSOR: "Relacao voltada ao fortalecimento do clube, da estrutura e da rotina esportiva.",
+    SITE_PARTNER: "Relacao comercial de presenca no site, em vitrine ou em espacos combinados da cobertura.",
+    SUPPORTER: "Apoio flexivel de pessoa, projeto ou negocio local que caminha junto com o Resenha.",
+    BOTH: "Relacao que pode unir apoio institucional ao clube e presenca comercial no site."
 };
 
 const sponsorJourneyCards = [
@@ -59,11 +73,27 @@ export const metadata: Metadata = createPageMetadata({
     keywords: ["patrocinadores", "parceiros oficiais", "apoio ao clube", "parceria comercial", "Resenha RFC"]
 });
 
+async function getActivePremiumPages() {
+    try {
+        return await db.query.premiumPartnerPages.findMany({
+            where: eq(premiumPartnerPages.isActive, true),
+            orderBy: [asc(premiumPartnerPages.displayOrder), asc(premiumPartnerPages.partnerName)]
+        });
+    } catch {
+        return [];
+    }
+}
+
 export default async function PatrocinadoresPage() {
-    const sponsorList = await db.query.sponsors.findMany({
-        where: eq(sponsors.isActive, true),
-        orderBy: [asc(sponsors.displayOrder), asc(sponsors.name)]
-    });
+    const [sponsorList, premiumPages] = await Promise.all([
+        db.query.sponsors.findMany({
+            where: eq(sponsors.isActive, true),
+            orderBy: [asc(sponsors.displayOrder), asc(sponsors.name)]
+        }),
+        getActivePremiumPages()
+    ]);
+    const premiumPageBySponsor = new Map(premiumPages.filter((page) => page.sponsorId).map((page) => [page.sponsorId, page]));
+    const premiumPageByPartnerName = new Map(premiumPages.map((page) => [page.partnerName.toLowerCase(), page]));
 
     const groupedSponsors = tierOrder
         .map((tier) => ({
@@ -211,6 +241,11 @@ export default async function PatrocinadoresPage() {
                                     }`}
                                 >
                                     {group.sponsors.map((sponsor) => {
+                                        const premiumPage =
+                                            premiumPageBySponsor.get(sponsor.id) ??
+                                            premiumPageByPartnerName.get(sponsor.name.toLowerCase());
+                                        const destination = premiumPage ? `/parceiros/${premiumPage.slug}` : sponsor.websiteUrl;
+                                        const isExternalDestination = destination ? /^https?:\/\//.test(destination) : false;
                                         const cardContent = (
                                             <div
                                                 className={`group flex h-full flex-col rounded-[26px] border bg-navy-950/80 p-5 transition-all duration-300 hover:-translate-y-1 ${
@@ -232,42 +267,46 @@ export default async function PatrocinadoresPage() {
                                                             {tierLabels[sponsor.tier]}
                                                         </span>
                                                         <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200">
-                                                            {getSponsorPlacementLabel(sponsor.description)}
+                                                            {relationshipLabels[sponsor.relationshipType]}
                                                         </span>
                                                     </div>
                                                     <p className="mt-2 text-sm leading-relaxed text-cream-300">
                                                         {getSponsorSupportCopy(sponsor.description)}
                                                     </p>
                                                     <p className="mt-3 text-xs leading-6 text-cream-300/65">
-                                                        A relacao pode ser apoio ao clube, parceria comercial no site ou ambos, sempre combinada com clareza.
+                                                        {relationshipCopy[sponsor.relationshipType]}
                                                     </p>
                                                 </div>
 
                                                 <div className="mt-5 flex items-center justify-between border-t border-navy-800 pt-4">
                                                     <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-300">
-                                                        {sponsor.websiteUrl ? "Visitar marca" : "Parceria confirmada"}
+                                                        {premiumPage ? "Ver destaque" : sponsor.websiteUrl ? "Visitar marca" : "Parceria confirmada"}
                                                     </span>
                                                     <ArrowRight className="h-4 w-4 text-blue-300 transition-transform group-hover:translate-x-1" />
                                                 </div>
                                             </div>
                                         );
 
-                                        return sponsor.websiteUrl ? (
+                                        if (!destination) {
+                                            return (
+                                                <div key={sponsor.id}>{cardContent}</div>
+                                            );
+                                        }
+
+                                        return (
                                             <Link
                                                 key={sponsor.id}
-                                                href={sponsor.websiteUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
+                                                href={destination}
+                                                target={isExternalDestination ? "_blank" : undefined}
+                                                rel={isExternalDestination ? "noopener noreferrer" : undefined}
                                                 data-monetization-event="partner_logo_click"
-                                                data-label="Visitar marca"
+                                                data-label={premiumPage ? "Ver destaque" : "Visitar marca"}
                                                 data-partner-name={sponsor.name}
                                                 data-source="sponsors_page"
-                                                data-destination={sponsor.websiteUrl}
+                                                data-destination={destination}
                                             >
                                                 {cardContent}
                                             </Link>
-                                        ) : (
-                                            <div key={sponsor.id}>{cardContent}</div>
                                         );
                                     })}
                                 </div>
