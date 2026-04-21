@@ -19,6 +19,7 @@ function getEventPayload(element: HTMLElement) {
         label: getElementLabel(element),
         source: element.dataset.source,
         destination: element.dataset.destination,
+        context: element.dataset.context,
         journey: element.dataset.journey,
         partner_name: element.dataset.partnerName,
         url: element.dataset.destination,
