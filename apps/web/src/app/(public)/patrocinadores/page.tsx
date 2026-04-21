@@ -5,7 +5,7 @@ import { db } from "@resenha/db";
 import { sponsors } from "@resenha/db/schema";
 import { asc, eq } from "drizzle-orm";
 import type { SponsorTier } from "@resenha/validators";
-import { ArrowRight, Handshake, Star } from "lucide-react";
+import { ArrowRight, Handshake, HeartHandshake, Star } from "lucide-react";
 import { SponsorBrandTile } from "@/components/sponsors/SponsorBrandTile";
 import { getSponsorPlacementLabel, getSponsorSupportCopy } from "@/components/sponsors/sponsorBrand";
 import { createPageMetadata } from "@/lib/seo";
@@ -18,20 +18,45 @@ const tierLabels: Record<SponsorTier, string> = {
     APOIO: "Apoio"
 };
 const tierDescriptions: Record<SponsorTier, string> = {
-    MASTER: "Marcas com presenca premium ao lado da identidade principal do clube.",
-    OURO: "Parcerias com forte visibilidade institucional e exposicao recorrente.",
-    PRATA: "Apoios relevantes para fortalecer a estrutura e a experiencia do Resenha RFC.",
-    APOIO: "Negocios e parceiros que caminham junto com o projeto desde a base."
+    MASTER: "Marcas com presenca premium na vitrine oficial, podendo unir apoio ao clube e destaque comercial combinado.",
+    OURO: "Parcerias com forte presenca institucional e possibilidade de aparecer em espacos da cobertura.",
+    PRATA: "Apoios relevantes para fortalecer a estrutura, a experiencia e a comunicacao do Resenha RFC.",
+    APOIO: "Negocios, apoiadores e parceiros locais que caminham junto com o projeto desde a base."
 };
+const tierRelationshipBadges: Record<SponsorTier, string[]> = {
+    MASTER: ["Apoio ao clube", "Destaque comercial"],
+    OURO: ["Apoio institucional", "Parceiro da cobertura"],
+    PRATA: ["Apoio ao projeto", "Presenca no site"],
+    APOIO: ["Apoiador", "Comercio local"]
+};
+
+const sponsorJourneyCards = [
+    {
+        title: "Apoiar o time",
+        description: "Para quem quer fortalecer campo, quadra, materiais, calendario e a continuidade do projeto esportivo.",
+        href: "/apoiar-o-resenha",
+        cta: "Ver formas de apoio",
+        badge: "Apoio ao clube",
+        icon: HeartHandshake
+    },
+    {
+        title: "Divulgar minha marca",
+        description: "Para empresas que querem aparecer no site, nas materias, em conteudos de rodada ou na pagina de parceiros.",
+        href: "/seja-parceiro",
+        cta: "Ver como funciona",
+        badge: "Parceria comercial",
+        icon: Handshake
+    }
+];
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createPageMetadata({
-    title: "Patrocinadores",
+    title: "Patrocinadores e parceiros",
     description:
-        "Veja os patrocinadores e parceiros oficiais do Resenha RFC e descubra como apoiar o clube com visibilidade institucional e presença de marca.",
+        "Veja marcas que fortalecem o Resenha RFC e escolha entre apoiar o clube ou divulgar sua empresa no site.",
     path: "/patrocinadores",
-    keywords: ["patrocinadores", "parceiros oficiais", "apoio", "marca", "visibilidade"]
+    keywords: ["patrocinadores", "parceiros oficiais", "apoio ao clube", "parceria comercial", "Resenha RFC"]
 });
 
 export default async function PatrocinadoresPage() {
@@ -58,37 +83,91 @@ export default async function PatrocinadoresPage() {
 
                     <div className="relative z-10 max-w-3xl">
                         <Badge variant="gold" className="mb-5">
-                            Parceiros oficiais
+                            Vitrine oficial
                         </Badge>
                         <h1 className="font-display text-4xl font-bold tracking-tight text-cream-100 sm:text-5xl md:text-6xl">
-                            Patrocinadores que aceleram o nosso projeto
+                            Parceiros que fortalecem o Resenha.
                         </h1>
                         <p className="mt-5 text-base leading-relaxed text-cream-300 md:text-lg">
-                            O Resenha RFC foi fundado em 2023 e vem construindo uma identidade forte dentro e fora de quadra. Cada parceiro aqui ajuda a transformar presenca local em marca viva, torcida em comunidade e calendario em oportunidade real de exposicao.
+                            Esta e a vitrine de marcas, apoiadores e negocios que caminham com o clube. Alguns fortalecem a rotina esportiva; outros aparecem na cobertura e nos espacos do site; muitos podem fazer as duas coisas de forma combinada.
                         </p>
 
                         <div className="mt-8 flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-cream-300">
-                            <span className="rounded-full border border-navy-700 bg-navy-900/80 px-3 py-1.5">Home com destaque</span>
-                            <span className="rounded-full border border-navy-700 bg-navy-900/80 px-3 py-1.5">Pagina institucional</span>
+                            <span className="rounded-full border border-navy-700 bg-navy-900/80 px-3 py-1.5">Apoio ao clube</span>
+                            <span className="rounded-full border border-navy-700 bg-navy-900/80 px-3 py-1.5">Parceria comercial</span>
                             <span className="rounded-full border border-navy-700 bg-navy-900/80 px-3 py-1.5">Fundado em 2023</span>
                         </div>
 
                         <div className="mt-8 flex flex-wrap gap-3">
                             <Button asChild>
-                                <Link href="/contato">
-                                    Quero apoiar o Resenha
-                                    <Handshake className="ml-2 h-4 w-4" />
+                                <Link
+                                    href="/apoiar-o-resenha"
+                                    data-monetization-event="cta_click"
+                                    data-label="Apoiar o time"
+                                    data-journey="support"
+                                    data-source="sponsors_page_hero"
+                                    data-destination="/apoiar-o-resenha"
+                                >
+                                    Apoiar o time
+                                    <HeartHandshake className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>
                             <Button asChild variant="outline">
-                                <Link href="/">
-                                    Voltar para a home
+                                <Link
+                                    href="/seja-parceiro"
+                                    data-monetization-event="cta_click"
+                                    data-label="Divulgar minha marca"
+                                    data-journey="commercial"
+                                    data-source="sponsors_page_hero"
+                                    data-destination="/seja-parceiro"
+                                >
+                                    Divulgar minha marca
                                     <ArrowRight className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>
                         </div>
                     </div>
                 </div>
+
+                <section className="mt-8 grid gap-4 md:grid-cols-2" aria-label="Escolha sua forma de parceria">
+                    {sponsorJourneyCards.map((card) => {
+                        const Icon = card.icon;
+
+                        return (
+                            <Card key={card.title} className="group border-navy-800 bg-navy-900/85 p-6 transition-all hover:-translate-y-1 hover:border-blue-500/30 hover:shadow-[0_18px_40px_rgba(37,99,235,0.12)]">
+                                <div className="flex items-start gap-4">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-400/20 bg-blue-500/10 text-blue-300">
+                                        <Icon className="h-5 w-5" aria-hidden="true" />
+                                    </div>
+                                    <div>
+                                        <Badge variant="outline" className="border-cream-100/10 bg-navy-950/50 text-cream-100">
+                                            {card.badge}
+                                        </Badge>
+                                        <h2 className="mt-4 font-display text-2xl font-bold text-cream-100">
+                                            {card.title}
+                                        </h2>
+                                        <p className="mt-3 text-sm leading-7 text-cream-300">
+                                            {card.description}
+                                        </p>
+                                    </div>
+                                </div>
+                                <Button asChild variant={card.href === "/seja-parceiro" ? "primary" : "outline"} className="mt-6 w-full rounded-full sm:w-auto">
+                                    <Link
+                                        href={card.href}
+                                        data-monetization-event="cta_click"
+                                        data-label={card.cta}
+                                        data-journey={card.href === "/seja-parceiro" ? "commercial" : "support"}
+                                        data-source="sponsors_page_journey_cards"
+                                        data-destination={card.href}
+                                    >
+                                        {card.cta}
+                                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                                    </Link>
+                                </Button>
+                            </Card>
+                        );
+                    })}
+                </section>
 
                 <div className="mt-12 space-y-8">
                     {groupedSponsors.length > 0 ? (
@@ -108,6 +187,16 @@ export default async function PatrocinadoresPage() {
                                         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-cream-300">
                                             {group.description}
                                         </p>
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            {tierRelationshipBadges[group.tier].map((label) => (
+                                                <span
+                                                    key={label}
+                                                    className="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200"
+                                                >
+                                                    {label}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
                                     <Badge variant={group.tier === "MASTER" ? "gold" : group.tier === "OURO" ? "accent" : "outline"}>
                                         {group.sponsors.length} parceiro{group.sponsors.length > 1 ? "s" : ""}
@@ -149,6 +238,9 @@ export default async function PatrocinadoresPage() {
                                                     <p className="mt-2 text-sm leading-relaxed text-cream-300">
                                                         {getSponsorSupportCopy(sponsor.description)}
                                                     </p>
+                                                    <p className="mt-3 text-xs leading-6 text-cream-300/65">
+                                                        A relacao pode ser apoio ao clube, parceria comercial no site ou ambos, sempre combinada com clareza.
+                                                    </p>
                                                 </div>
 
                                                 <div className="mt-5 flex items-center justify-between border-t border-navy-800 pt-4">
@@ -165,7 +257,12 @@ export default async function PatrocinadoresPage() {
                                                 key={sponsor.id}
                                                 href={sponsor.websiteUrl}
                                                 target="_blank"
-                                                rel="noreferrer"
+                                                rel="noopener noreferrer"
+                                                data-monetization-event="partner_logo_click"
+                                                data-label="Visitar marca"
+                                                data-partner-name={sponsor.name}
+                                                data-source="sponsors_page"
+                                                data-destination={sponsor.websiteUrl}
                                             >
                                                 {cardContent}
                                             </Link>
@@ -178,13 +275,34 @@ export default async function PatrocinadoresPage() {
                         ))
                     ) : (
                         <Card className="border-dashed border-navy-800 bg-navy-900/80 p-8 text-center">
-                            <h2 className="font-display text-2xl text-cream-100">Espaco aberto para os primeiros parceiros</h2>
+                            <h2 className="font-display text-2xl text-cream-100">Espaco aberto para os primeiros parceiros do Resenha</h2>
                             <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-cream-300">
-                                A pagina de patrocinadores ja esta pronta para receber as logos e destacar as marcas na home. Assim que o primeiro parceiro entrar no admin, ele aparece aqui.
+                                A vitrine ja esta pronta para receber marcas que queiram fortalecer o clube ou aparecer na cobertura do Resenha.
                             </p>
-                            <div className="mt-6">
+                            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                                <Button asChild variant="outline">
+                                    <Link
+                                        href="/apoiar-o-resenha"
+                                        data-monetization-event="cta_click"
+                                        data-label="Apoiar o time"
+                                        data-journey="support"
+                                        data-source="sponsors_page_empty_state"
+                                        data-destination="/apoiar-o-resenha"
+                                    >
+                                        Apoiar o time
+                                    </Link>
+                                </Button>
                                 <Button asChild>
-                                    <Link href="/contato">Quero ser o primeiro parceiro</Link>
+                                    <Link
+                                        href="/seja-parceiro"
+                                        data-monetization-event="cta_click"
+                                        data-label="Divulgar minha marca"
+                                        data-journey="commercial"
+                                        data-source="sponsors_page_empty_state"
+                                        data-destination="/seja-parceiro"
+                                    >
+                                        Divulgar minha marca
+                                    </Link>
                                 </Button>
                             </div>
                         </Card>

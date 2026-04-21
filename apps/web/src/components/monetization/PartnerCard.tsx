@@ -88,6 +88,7 @@ export function PartnerCard({
                 className
             )}
             data-monetization-event={safeHref ? "partner_logo_click" : undefined}
+            data-label={resolvedLinkLabel}
             data-partner-name={name}
             data-source={source}
             data-destination={safeHref}

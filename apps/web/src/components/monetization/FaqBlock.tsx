@@ -50,6 +50,7 @@ export function FaqBlock({
                                 open={defaultOpenFirst && index === 0 ? true : undefined}
                                 data-monetization-event="faq_interaction"
                                 data-source={source}
+                                data-page={source}
                                 data-question={faq.question}
                             >
                                 <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-5 text-left marker:hidden sm:p-6">

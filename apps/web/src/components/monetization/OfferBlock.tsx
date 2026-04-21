@@ -51,7 +51,8 @@ export function OfferBlock({
                                         href={href}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        data-monetization-event="offer_block_click"
+                                        data-monetization-event="partner_logo_click"
+                                        data-label={linkLabel}
                                         data-source={source}
                                         data-partner-name={partnerName}
                                         data-destination={href}
@@ -62,7 +63,8 @@ export function OfferBlock({
                                 ) : (
                                     <Link
                                         href={href}
-                                        data-monetization-event="offer_block_click"
+                                        data-monetization-event="partner_logo_click"
+                                        data-label={linkLabel}
                                         data-source={source}
                                         data-partner-name={partnerName}
                                         data-destination={href}

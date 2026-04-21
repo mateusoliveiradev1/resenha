@@ -36,8 +36,11 @@ function CtaButton({ cta, source, offerName }: { cta: MonetizationCta; source: s
     const isExternal = cta.external ?? /^https?:\/\//.test(cta.href);
     const commonProps = {
         "data-monetization-event": "offer_cta_click",
+        "data-label": cta.label,
+        "data-journey": "commercial",
         "data-source": source,
         "data-offer-name": offerName,
+        "data-plan-name": offerName,
         "data-destination": cta.href
     };
 

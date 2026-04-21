@@ -21,6 +21,12 @@ export function Footer() {
         { label: "Titulos", href: "/titulos" },
         { label: "Contato", href: "/contato" }
     ];
+    const supportLinks = [
+        { label: "Apoiar o Resenha", href: "/apoiar-o-resenha", journey: "support" },
+        { label: "Seja parceiro", href: "/seja-parceiro", journey: "commercial" },
+        { label: "Patrocinadores oficiais", href: "/patrocinadores", journey: "commercial" },
+        { label: "Contato", href: "/contato", journey: "support" }
+    ];
     const legalLinks = [
         { label: "Politica de Privacidade", href: "/politica-de-privacidade" },
         { label: "Termos de Uso", href: "/termos-de-uso" },
@@ -71,7 +77,7 @@ export function Footer() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-8 md:col-span-8 sm:grid-cols-2 lg:col-span-7 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-8 md:col-span-8 sm:grid-cols-2 lg:col-span-7 lg:grid-cols-4">
                         <div>
                             <h3 className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-navy-400">
                                 <span className="h-2 w-2 rounded-sm bg-blue-500/50" />
@@ -104,14 +110,38 @@ export function Footer() {
                             </ul>
                         </div>
 
+                        <div>
+                            <h3 className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-navy-400">
+                                <span className="h-2 w-2 rounded-sm bg-blue-500/50" />
+                                Apoio e parcerias
+                            </h3>
+                            <ul className="space-y-4">
+                                {supportLinks.map((item) => (
+                                    <li key={item.label}>
+                                        <Link
+                                            href={item.href}
+                                            className="inline-block text-sm text-cream-300 transition-colors duration-300 hover:translate-x-1 hover:text-blue-400"
+                                            data-monetization-event="cta_click"
+                                            data-label={item.label}
+                                            data-journey={item.journey}
+                                            data-source="footer_links"
+                                            data-destination={item.href}
+                                        >
+                                            {item.label}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
                         <div className="sm:col-span-2 lg:col-span-1">
                             <h3 className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-navy-400">
-                                <span className="h-2 w-2 rounded-sm bg-red-500/50" />
-                                Seja parceiro
+                                <span className="h-2 w-2 rounded-sm bg-gold-500/50" />
+                                Vamos conversar
                             </h3>
                             <div className="rounded-2xl border border-navy-800 bg-navy-900/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
                                 <p className="text-xs leading-relaxed text-cream-300/85">
-                                    Sua marca pode aparecer na home, na pagina de patrocinadores e nas narrativas do clube.
+                                    Quer fortalecer o clube? O apoio ajuda a rotina esportiva. Quer divulgar sua empresa no site? A parceria comercial comeca em um formato simples.
                                 </p>
                                 <div className="mt-5 space-y-3">
                                     <Button
@@ -119,14 +149,29 @@ export function Footer() {
                                         size="md"
                                         className="group min-h-12 w-full rounded-xl border border-blue-400/25 bg-blue-600 px-4 text-sm text-cream-100 shadow-[0_16px_36px_rgba(30,77,140,0.32)] hover:-translate-y-0.5 hover:bg-blue-500 sm:text-base"
                                     >
-                                        <Link href="/contato">
-                                            Falar com o clube
+                                        <Link
+                                            href="/seja-parceiro"
+                                            data-monetization-event="cta_click"
+                                            data-label="Divulgar minha empresa"
+                                            data-journey="commercial"
+                                            data-source="footer_card"
+                                            data-destination="/seja-parceiro"
+                                        >
+                                            Divulgar minha empresa
                                             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                                         </Link>
                                     </Button>
-                                    <p className="text-[11px] leading-relaxed text-cream-300/55">
-                                        Conversa comercial, parceria institucional e ativacoes da marca.
-                                    </p>
+                                    <Link
+                                        href="/apoiar-o-resenha"
+                                        className="inline-flex text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-300 transition-colors hover:text-gold-200"
+                                        data-monetization-event="cta_click"
+                                        data-label="Apoiar o Resenha"
+                                        data-journey="support"
+                                        data-source="footer_card"
+                                        data-destination="/apoiar-o-resenha"
+                                    >
+                                        Apoiar o Resenha
+                                    </Link>
                                 </div>
                             </div>
                         </div>

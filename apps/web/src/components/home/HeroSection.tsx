@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Button, Container } from "@resenha/ui";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CalendarClock, Camera, Handshake, Newspaper } from "lucide-react";
+import { ArrowRight, CalendarClock, Camera, Newspaper } from "lucide-react";
 
 const pillars = [
     {
@@ -83,12 +83,6 @@ export function HeroSection() {
                                 <Link href="/jogos">
                                     Agenda do clube
                                     <CalendarClock className="ml-2 h-5 w-5" />
-                                </Link>
-                            </Button>
-                            <Button variant="secondary" size="lg" className="h-14 rounded-full px-8 text-base font-bold" asChild>
-                                <Link href="/patrocinadores">
-                                    Seja parceiro
-                                    <Handshake className="ml-2 h-5 w-5" />
                                 </Link>
                             </Button>
                         </motion.div>

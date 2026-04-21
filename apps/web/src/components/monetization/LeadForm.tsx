@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Badge, Button, Card, CardContent, FormField, cn } from "@resenha/ui";
 import { AlertCircle, CheckCircle2, Loader2, MessageCircle } from "lucide-react";
+import { trackMonetizationEvent, type MonetizationEventName } from "@/lib/analytics";
 
 export type LeadFormVariant = "support" | "commercial";
 
@@ -69,6 +70,26 @@ function validateEmail(value: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function validateInstagramOrSite(value: string) {
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue) {
+        return true;
+    }
+
+    if (/^@[a-zA-Z0-9._]{2,30}$/.test(trimmedValue)) {
+        return true;
+    }
+
+    try {
+        const url = new URL(trimmedValue);
+
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
 function validateValues(values: LeadFormValues, variant: LeadFormVariant): LeadFormErrors {
     const errors: LeadFormErrors = {};
 
@@ -100,6 +121,18 @@ function validateValues(values: LeadFormValues, variant: LeadFormVariant): LeadF
 
     if (variant === "commercial" && !values.advertisingOption) {
         errors.advertisingOption = "Escolha uma opcao de divulgacao ou selecione Quero conversar antes.";
+    }
+
+    if (values.instagramOrSite.trim() && !validateInstagramOrSite(values.instagramOrSite)) {
+        errors.instagramOrSite = "Informe um @perfil ou uma URL completa com https://.";
+    }
+
+    if (values.supportDescription.length > 800) {
+        errors.supportDescription = "Use no maximo 800 caracteres.";
+    }
+
+    if (values.message.length > 800) {
+        errors.message = "Use no maximo 800 caracteres.";
     }
 
     if (!values.contactConsent) {
@@ -137,6 +170,7 @@ function SelectField({
     value,
     options,
     error,
+    onFocus,
     onChange
 }: {
     id: keyof LeadFormValues;
@@ -144,6 +178,7 @@ function SelectField({
     value: string;
     options: string[];
     error?: string;
+    onFocus?: () => void;
     onChange: (name: keyof LeadFormValues, value: string) => void;
 }) {
     const describedBy = error ? `${id}-error` : undefined;
@@ -157,6 +192,7 @@ function SelectField({
                 id={id}
                 name={id}
                 value={value}
+                onFocus={onFocus}
                 onChange={(event) => onChange(id, event.target.value)}
                 aria-invalid={error ? "true" : "false"}
                 aria-describedby={describedBy}
@@ -188,6 +224,7 @@ function TextareaField({
     error,
     placeholder,
     required,
+    onFocus,
     onChange
 }: {
     id: keyof LeadFormValues;
@@ -196,6 +233,7 @@ function TextareaField({
     error?: string;
     placeholder?: string;
     required?: boolean;
+    onFocus?: () => void;
     onChange: (name: keyof LeadFormValues, value: string) => void;
 }) {
     const describedBy = error ? `${id}-error` : undefined;
@@ -209,6 +247,7 @@ function TextareaField({
                 id={id}
                 name={id}
                 value={value}
+                onFocus={onFocus}
                 onChange={(event) => onChange(id, event.target.value)}
                 rows={4}
                 maxLength={800}
@@ -230,15 +269,56 @@ function TextareaField({
     );
 }
 
+function getFormEventName(variant: LeadFormVariant, state: "start" | "submit" | "success" | "error"): MonetizationEventName {
+    return `${variant === "support" ? "support" : "partner"}_form_${state}` as MonetizationEventName;
+}
+
+async function submitLeadToApi(variant: LeadFormVariant, source: string, values: LeadFormValues) {
+    const response = await fetch("/api/leads", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            variant,
+            source,
+            values
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error("Lead submission failed.");
+    }
+}
+
 export function LeadForm({ variant, source = "lead_form", className, onSubmitLead }: LeadFormProps) {
     const formRef = React.useRef<HTMLFormElement>(null);
+    const didTrackStartRef = React.useRef(false);
     const [values, setValues] = React.useState<LeadFormValues>(initialValues);
     const [errors, setErrors] = React.useState<LeadFormErrors>({});
     const [status, setStatus] = React.useState<"idle" | "submitting" | "success" | "error">("idle");
     const [statusMessage, setStatusMessage] = React.useState("");
     const copy = getCopy(variant);
 
+    function trackFormEvent(state: "start" | "submit" | "success" | "error", extra: Record<string, string | number | boolean> = {}) {
+        trackMonetizationEvent(getFormEventName(variant, state), {
+            journey: variant,
+            source,
+            ...extra
+        });
+    }
+
+    function trackStartOnce() {
+        if (didTrackStartRef.current) {
+            return;
+        }
+
+        didTrackStartRef.current = true;
+        trackFormEvent("start");
+    }
+
     function updateValue(name: keyof LeadFormValues, value: string | boolean) {
+        trackStartOnce();
         setValues((current) => ({ ...current, [name]: value }));
         setErrors((current) => {
             if (!current[name]) {
@@ -260,28 +340,39 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
 
         const firstError = Object.keys(nextErrors)[0] as keyof LeadFormValues | undefined;
         if (firstError) {
-            window.requestAnimationFrame(() => {
-                formRef.current?.querySelector<HTMLElement>(`[name="${firstError}"]`)?.focus();
+            trackFormEvent("error", {
+                reason: "validation",
+                field: firstError
             });
-            return;
-        }
+            window.requestAnimationFrame(() => {
+                const firstErrorElement = formRef.current?.querySelector<HTMLElement>(`[name="${firstError}"]`);
 
-        if (!onSubmitLead) {
-            setStatus("error");
-            setStatusMessage(copy.unavailable);
+                firstErrorElement?.scrollIntoView({ behavior: "smooth", block: "center" });
+                firstErrorElement?.focus({ preventScroll: true });
+            });
             return;
         }
 
         setStatus("submitting");
         setStatusMessage("");
+        trackFormEvent("submit");
 
         try {
-            await onSubmitLead(values);
+            if (onSubmitLead) {
+                await onSubmitLead(values);
+            } else {
+                await submitLeadToApi(variant, source, values);
+            }
+
             setStatus("success");
             setStatusMessage(copy.success);
-        } catch {
+            trackFormEvent("success");
+        } catch (error) {
             setStatus("error");
             setStatusMessage("Nao conseguimos enviar agora. Seus dados continuam no formulario para tentar novamente.");
+            trackFormEvent("error", {
+                reason: error instanceof Error ? error.message : "submission_failed"
+            });
         }
     }
 
@@ -314,6 +405,7 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                             placeholder="Seu nome"
                             autoComplete="name"
                             required
+                            onFocus={trackStartOnce}
                         />
                         <FormField
                             id={`${variant}-lead-whatsapp`}
@@ -326,6 +418,7 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                             placeholder="(11) 99999-9999"
                             autoComplete="tel"
                             required
+                            onFocus={trackStartOnce}
                         />
                     </div>
 
@@ -339,6 +432,7 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                                     value={values.company}
                                     onChange={(event) => updateValue("company", event.target.value)}
                                     placeholder="Opcional"
+                                    onFocus={trackStartOnce}
                                 />
                                 <FormField
                                     id="support-lead-email"
@@ -350,6 +444,7 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                                     errorMessage={errors.email}
                                     placeholder="voce@email.com"
                                     autoComplete="email"
+                                    onFocus={trackStartOnce}
                                 />
                             </div>
                             <div className="grid gap-5 md:grid-cols-2">
@@ -360,6 +455,7 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                                     value={values.city}
                                     onChange={(event) => updateValue("city", event.target.value)}
                                     placeholder="Opcional"
+                                    onFocus={trackStartOnce}
                                 />
                                 <SelectField
                                     id="supportType"
@@ -367,6 +463,7 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                                     value={values.supportType}
                                     options={supportTypeOptions}
                                     error={errors.supportType}
+                                    onFocus={trackStartOnce}
                                     onChange={updateValue}
                                 />
                             </div>
@@ -377,6 +474,7 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                                 error={errors.supportDescription}
                                 placeholder="Ex: Tenho interesse em apoiar materiais de jogo ou conversar sobre patrocinio do time."
                                 required
+                                onFocus={trackStartOnce}
                                 onChange={updateValue}
                             />
                             <TextareaField
@@ -384,6 +482,8 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                                 label="Mensagem adicional"
                                 value={values.message}
                                 placeholder="Opcional"
+                                error={errors.message}
+                                onFocus={trackStartOnce}
                                 onChange={updateValue}
                             />
                         </>
@@ -399,6 +499,7 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                                     errorMessage={errors.company}
                                     placeholder="Nome da empresa"
                                     required
+                                    onFocus={trackStartOnce}
                                 />
                                 <FormField
                                     id="commercial-lead-business-type"
@@ -407,6 +508,7 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                                     value={values.businessType}
                                     onChange={(event) => updateValue("businessType", event.target.value)}
                                     placeholder="Ex: pizzaria, loja, academia"
+                                    onFocus={trackStartOnce}
                                 />
                             </div>
                             <div className="grid gap-5 md:grid-cols-2">
@@ -416,6 +518,7 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                                     value={values.advertisingOption}
                                     options={advertisingOptions}
                                     error={errors.advertisingOption}
+                                    onFocus={trackStartOnce}
                                     onChange={updateValue}
                                 />
                                 <FormField
@@ -425,13 +528,17 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                                     value={values.instagramOrSite}
                                     onChange={(event) => updateValue("instagramOrSite", event.target.value)}
                                     placeholder="@empresa ou https://..."
+                                    errorMessage={errors.instagramOrSite}
+                                    onFocus={trackStartOnce}
                                 />
                             </div>
                             <TextareaField
                                 id="message"
                                 label="Mensagem"
                                 value={values.message}
+                                error={errors.message}
                                 placeholder="Ex: Quero entender onde minha empresa pode aparecer no site do Resenha."
+                                onFocus={trackStartOnce}
                                 onChange={updateValue}
                             />
                         </>

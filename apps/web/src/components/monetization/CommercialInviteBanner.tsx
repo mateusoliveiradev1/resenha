@@ -44,6 +44,7 @@ export function CommercialInviteBanner({
                             <Link
                                 href={href}
                                 data-monetization-event="cta_click"
+                                data-label={ctaLabel}
                                 data-journey="commercial"
                                 data-source={source}
                                 data-destination={href}

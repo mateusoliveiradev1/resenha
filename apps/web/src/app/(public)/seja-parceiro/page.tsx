@@ -284,6 +284,7 @@ function CommercialWhatsappButton({
                 target="_blank"
                 rel="noopener noreferrer"
                 data-monetization-event="cta_click"
+                data-label={label}
                 data-journey="commercial"
                 data-source={source}
                 data-destination={commercialWhatsappHref}
@@ -319,7 +320,14 @@ export default function SejaParceiroPage() {
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                             <CommercialWhatsappButton source="partner_page_hero" />
                             <Button asChild variant="outline" size="lg">
-                                <Link href="#onde-aparece">
+                                <Link
+                                    href="#onde-aparece"
+                                    data-monetization-event="cta_click"
+                                    data-label="Ver onde minha empresa aparece"
+                                    data-journey="commercial"
+                                    data-source="partner_page_hero"
+                                    data-destination="#onde-aparece"
+                                >
                                     Ver onde minha empresa aparece
                                     <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                                 </Link>
@@ -328,6 +336,11 @@ export default function SejaParceiroPage() {
                         <Link
                             href="#contato-comercial"
                             className="mt-4 inline-flex text-sm font-semibold text-blue-300 underline-offset-4 hover:text-blue-200 hover:underline"
+                            data-monetization-event="cta_click"
+                            data-label="Prefiro deixar meus dados"
+                            data-journey="commercial"
+                            data-source="partner_page_hero"
+                            data-destination="#contato-comercial"
                         >
                             Prefiro deixar meus dados
                         </Link>
@@ -587,14 +600,34 @@ export default function SejaParceiroPage() {
 
                             if (item.external) {
                                 return (
-                                    <a key={item.title} href={item.href} target="_blank" rel="noopener noreferrer" className="block h-full">
+                                    <a
+                                        key={item.title}
+                                        href={item.href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block h-full"
+                                        data-monetization-event="cta_click"
+                                        data-label={item.ctaLabel}
+                                        data-journey="commercial"
+                                        data-source="partner_page_comparison"
+                                        data-destination={item.href}
+                                    >
                                         {card}
                                     </a>
                                 );
                             }
 
                             return (
-                                <Link key={item.title} href={item.href} className="block h-full">
+                                <Link
+                                    key={item.title}
+                                    href={item.href}
+                                    className="block h-full"
+                                    data-monetization-event="cta_click"
+                                    data-label={item.ctaLabel}
+                                    data-journey="support"
+                                    data-source="partner_page_comparison"
+                                    data-destination={item.href}
+                                >
                                     {card}
                                 </Link>
                             );

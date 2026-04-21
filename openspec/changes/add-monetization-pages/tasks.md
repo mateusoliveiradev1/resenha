@@ -49,27 +49,27 @@
 
 ## 5. Navigation, Home, And Sponsor Showcase
 
-- [ ] 5.1 Update `PublicHeader` desktop navigation/CTA so the commercial partnership path is discoverable without overcrowding main editorial links.
-- [ ] 5.2 Update `PublicHeader` mobile menu to show distinct `Apoiar o Resenha` and `Seja parceiro` actions after the main navigation.
-- [ ] 5.3 Update `packages/ui/src/layout/Footer.tsx` to include support, partner, sponsor, and contact links under an `Apoio e parcerias` concept.
-- [ ] 5.4 Update the home hero or lower home sections with at most one discreet monetization CTA surface that does not reduce priority of club/sport CTAs.
-- [ ] 5.5 Update `SponsorsMarquee` copy and CTAs to distinguish viewing partners from becoming a commercial partner or supporting the club.
-- [ ] 5.6 Update `/patrocinadores` hero copy to position the page as a credibility showcase for brands that strengthen the Resenha.
-- [ ] 5.7 Add two journey cards to `/patrocinadores`: one for `Apoiar o time` and one for `Divulgar minha marca`.
-- [ ] 5.8 Preserve current sponsor tier grouping while adding copy or badges that can clarify institutional support, commercial partnership, or both.
-- [ ] 5.9 Update the empty sponsor state to invite first partners without suggesting missing or broken data.
+- [x] 5.1 Update `PublicHeader` desktop navigation/CTA so the commercial partnership path is discoverable without overcrowding main editorial links.
+- [x] 5.2 Update `PublicHeader` mobile menu to show distinct `Apoiar o Resenha` and `Seja parceiro` actions after the main navigation.
+- [x] 5.3 Update `packages/ui/src/layout/Footer.tsx` to include support, partner, sponsor, and contact links under an `Apoio e parcerias` concept.
+- [x] 5.4 Update the home hero or lower home sections with at most one discreet monetization CTA surface that does not reduce priority of club/sport CTAs.
+- [x] 5.5 Update `SponsorsMarquee` copy and CTAs to distinguish viewing partners from becoming a commercial partner or supporting the club.
+- [x] 5.6 Update `/patrocinadores` hero copy to position the page as a credibility showcase for brands that strengthen the Resenha.
+- [x] 5.7 Add two journey cards to `/patrocinadores`: one for `Apoiar o time` and one for `Divulgar minha marca`.
+- [x] 5.8 Preserve current sponsor tier grouping while adding copy or badges that can clarify institutional support, commercial partnership, or both.
+- [x] 5.9 Update the empty sponsor state to invite first partners without suggesting missing or broken data.
 
 ## 6. Forms, Lead Handling, And Analytics
 
-- [ ] 6.1 Implement client-side validation for support form and the secondary commercial form with field-level errors and first-error focus/scroll behavior.
-- [ ] 6.2 Implement submitting, success, and failure states for both lead form variants while preserving entered data on failure.
-- [ ] 6.3 Add a Fase 1 lead destination: no-op handler, API endpoint, e-mail hook, or WhatsApp prefilled fallback according to existing project constraints.
-- [ ] 6.4 Create or reuse an analytics helper that can safely no-op when no analytics provider is configured.
-- [ ] 6.5 Track CTA clicks with label, source, destination, and journey metadata, including WhatsApp-specific commercial CTA clicks.
-- [ ] 6.6 Track form start, submit, success, and error events separately for support and commercial journeys.
-- [ ] 6.7 Track partner card/logo clicks with partner name, source surface, and destination URL.
-- [ ] 6.8 Track base offer and add-on CTA clicks with offer/add-on name metadata.
-- [ ] 6.9 Track FAQ expansion or FAQ interaction if the FAQ component is interactive.
+- [x] 6.1 Implement client-side validation for support form and the secondary commercial form with field-level errors and first-error focus/scroll behavior.
+- [x] 6.2 Implement submitting, success, and failure states for both lead form variants while preserving entered data on failure.
+- [x] 6.3 Add a Fase 1 lead destination: no-op handler, API endpoint, e-mail hook, or WhatsApp prefilled fallback according to existing project constraints.
+- [x] 6.4 Create or reuse an analytics helper that can safely no-op when no analytics provider is configured.
+- [x] 6.5 Track CTA clicks with label, source, destination, and journey metadata, including WhatsApp-specific commercial CTA clicks.
+- [x] 6.6 Track form start, submit, success, and error events separately for support and commercial journeys.
+- [x] 6.7 Track partner card/logo clicks with partner name, source surface, and destination URL.
+- [x] 6.8 Track base offer and add-on CTA clicks with offer/add-on name metadata.
+- [x] 6.9 Track FAQ expansion or FAQ interaction if the FAQ component is interactive.
 
 ## 7. SEO, Accessibility, And Responsive QA
 

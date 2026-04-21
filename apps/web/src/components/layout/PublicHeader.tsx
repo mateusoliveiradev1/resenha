@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button, Container, cn } from "@resenha/ui";
-import { CalendarClock, Handshake, Menu, X } from "lucide-react";
+import { CalendarClock, Handshake, HeartHandshake, Menu, X } from "lucide-react";
 
 const navLinks = [
     { label: "Inicio", href: "/" },
@@ -43,8 +43,13 @@ export function PublicHeader() {
                     <Link
                         href="/patrocinadores"
                         className="hidden text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-blue-300 transition-colors hover:text-blue-200 md:inline-flex"
+                        data-monetization-event="cta_click"
+                        data-label="Parceiros oficiais"
+                        data-journey="commercial"
+                        data-source="header_topbar"
+                        data-destination="/patrocinadores"
                     >
-                        Ver parceiros oficiais
+                        Parceiros oficiais
                     </Link>
                 </Container>
             </div>
@@ -102,7 +107,14 @@ export function PublicHeader() {
                             </Link>
                         </Button>
                         <Button className="rounded-full px-5 shadow-[0_0_24px_rgba(37,99,235,0.24)]" asChild>
-                            <Link href="/patrocinadores">
+                            <Link
+                                href="/seja-parceiro"
+                                data-monetization-event="cta_click"
+                                data-label="Parcerias"
+                                data-journey="commercial"
+                                data-source="header_desktop"
+                                data-destination="/seja-parceiro"
+                            >
                                 Parcerias
                                 <Handshake className="ml-2 h-4 w-4" />
                             </Link>
@@ -145,15 +157,29 @@ export function PublicHeader() {
                         </nav>
 
                         <div className="grid gap-3 sm:grid-cols-2">
-                            <Button variant="outline" className="h-11 rounded-full border-navy-700 bg-transparent text-cream-100 hover:bg-navy-900" asChild>
-                                <Link href="/jogos">
-                                    Agenda
-                                    <CalendarClock className="ml-2 h-4 w-4" />
+                            <Button variant="outline" className="h-11 rounded-full border-gold-400/25 bg-gold-400/8 text-cream-100 hover:bg-gold-400/12" asChild>
+                                <Link
+                                    href="/apoiar-o-resenha"
+                                    data-monetization-event="cta_click"
+                                    data-label="Apoiar o Resenha"
+                                    data-journey="support"
+                                    data-source="mobile_menu"
+                                    data-destination="/apoiar-o-resenha"
+                                >
+                                    Apoiar o Resenha
+                                    <HeartHandshake className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>
                             <Button className="h-11 rounded-full shadow-[0_0_24px_rgba(37,99,235,0.24)]" asChild>
-                                <Link href="/patrocinadores">
-                                    Parcerias
+                                <Link
+                                    href="/seja-parceiro"
+                                    data-monetization-event="cta_click"
+                                    data-label="Seja parceiro"
+                                    data-journey="commercial"
+                                    data-source="mobile_menu"
+                                    data-destination="/seja-parceiro"
+                                >
+                                    Seja parceiro
                                     <Handshake className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>

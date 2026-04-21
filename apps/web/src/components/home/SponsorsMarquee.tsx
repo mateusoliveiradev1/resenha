@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge, Button, Card, Container } from "@resenha/ui";
 import type { SponsorTier } from "@resenha/validators";
-import { ArrowRight, Handshake } from "lucide-react";
+import { ArrowRight, Handshake, HeartHandshake } from "lucide-react";
 import { SponsorBrandTile } from "@/components/sponsors/SponsorBrandTile";
 import { getSponsorPlacementLabel } from "@/components/sponsors/sponsorBrand";
 
@@ -41,26 +41,53 @@ export function SponsorsMarquee({ sponsors }: { sponsors: SponsorMarqueeItem[] }
                     <div className="flex flex-col gap-6 border-b border-navy-800/80 pb-6 md:flex-row md:items-end md:justify-between">
                         <div className="max-w-2xl">
                             <Badge variant="accent" className="mb-4">
-                                Parcerias em campo
+                                Vitrine de parceiros
                             </Badge>
                             <h2 className="font-display text-3xl font-bold tracking-tight text-cream-100 md:text-4xl">
-                                Marcas que fortalecem o Resenha RFC
+                                Parceiros que fortalecem o Resenha
                             </h2>
                             <p className="mt-3 text-sm leading-relaxed text-cream-300 md:text-base">
-                                O clube foi fundado em 2023, e cada parceiro ajuda a acelerar essa caminhada. Aqui a marca aparece com destaque real, mesmo enquanto algumas logos ainda estao chegando ao painel.
+                                Veja quem caminha com o clube. Para entrar junto, escolha entre apoiar a rotina esportiva do Resenha ou divulgar sua empresa em espacos combinados do site.
                             </p>
                         </div>
 
                         <div className="flex flex-wrap gap-3">
                             <Button asChild variant="outline">
-                                <Link href="/patrocinadores">
-                                    Ver parceiros
+                                <Link
+                                    href="/patrocinadores"
+                                    data-monetization-event="cta_click"
+                                    data-label="Ver parceiros oficiais"
+                                    data-journey="commercial"
+                                    data-source="home_sponsor_marquee"
+                                    data-destination="/patrocinadores"
+                                >
+                                    Ver parceiros oficiais
                                     <ArrowRight className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>
+                            <Button asChild variant="outline" className="border-gold-400/25 bg-gold-400/8 hover:bg-gold-400/12">
+                                <Link
+                                    href="/apoiar-o-resenha"
+                                    data-monetization-event="cta_click"
+                                    data-label="Apoiar o clube"
+                                    data-journey="support"
+                                    data-source="home_sponsor_marquee"
+                                    data-destination="/apoiar-o-resenha"
+                                >
+                                    Apoiar o clube
+                                    <HeartHandshake className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
                             <Button asChild>
-                                <Link href="/contato">
-                                    Seja parceiro
+                                <Link
+                                    href="/seja-parceiro"
+                                    data-monetization-event="cta_click"
+                                    data-label="Divulgar minha empresa"
+                                    data-journey="commercial"
+                                    data-source="home_sponsor_marquee"
+                                    data-destination="/seja-parceiro"
+                                >
+                                    Divulgar minha empresa
                                     <Handshake className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>

@@ -3,11 +3,12 @@ import { LatestPosts, type PostPreview } from "@/components/home/LatestPosts";
 import { LatestResults, type MatchResult } from "@/components/home/LatestResults";
 import { NextMatchBanner } from "@/components/home/NextMatchBanner";
 import { SponsorsMarquee } from "@/components/home/SponsorsMarquee";
+import { CtaStrip } from "@/components/monetization/CtaStrip";
 import { toLatestResult, toNextMatch } from "@/lib/matches";
 import { SITE_NAME, getAbsoluteUrl } from "@/lib/seo";
 import { pickFeaturedMatch, presentMatches } from "@resenha/db";
 import { db } from "@resenha/db";
-import { championshipGroups, championshipParticipants, championships, clubs, matches, posts, sponsors } from "@resenha/db/schema";
+import { championshipGroups, championships, clubs, matches, posts, sponsors } from "@resenha/db/schema";
 import { asc, desc, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -97,7 +98,16 @@ export default async function Home() {
         </div>
       )}
 
-      {featuredSponsors.length > 0 && <SponsorsMarquee sponsors={featuredSponsors} />}
+      {featuredSponsors.length > 0 ? (
+        <SponsorsMarquee sponsors={featuredSponsors} />
+      ) : (
+        <CtaStrip
+          eyebrow="Apoio e parcerias"
+          title="Quer fortalecer o clube ou divulgar sua marca?"
+          description="Apoiar o Resenha fortalece a rotina esportiva. Divulgar sua empresa cria uma presenca combinada no site, nas materias e na pagina de parceiros."
+          source="home_cta_strip"
+        />
+      )}
 
       {mappedLatestResults.length > 0 && <LatestResults results={mappedLatestResults} />}
 

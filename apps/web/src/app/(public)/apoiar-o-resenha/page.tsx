@@ -162,13 +162,27 @@ export default function ApoiarOResenhaPage() {
 
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                             <Button asChild size="lg">
-                                <Link href="#fale-sobre-apoio">
+                                <Link
+                                    href="#fale-sobre-apoio"
+                                    data-monetization-event="cta_click"
+                                    data-label="Quero apoiar o Resenha"
+                                    data-journey="support"
+                                    data-source="support_page_hero"
+                                    data-destination="#fale-sobre-apoio"
+                                >
                                     Quero apoiar o Resenha
                                     <HeartHandshake className="ml-2 h-4 w-4" />
                                 </Link>
                             </Button>
                             <Button asChild variant="outline" size="lg">
-                                <Link href="#formas-de-apoio">
+                                <Link
+                                    href="#formas-de-apoio"
+                                    data-monetization-event="cta_click"
+                                    data-label="Ver formas de apoio"
+                                    data-journey="support"
+                                    data-source="support_page_hero"
+                                    data-destination="#formas-de-apoio"
+                                >
                                     Ver formas de apoio
                                     <ArrowRight className="ml-2 h-4 w-4" />
                                 </Link>
@@ -364,6 +378,7 @@ export default function ApoiarOResenhaPage() {
                                 <Link
                                     href="#fale-sobre-apoio"
                                     data-monetization-event="cta_click"
+                                    data-label="Conversar sobre apoio"
                                     data-journey="support"
                                     data-source="support_page_final_cta"
                                     data-destination="#fale-sobre-apoio"

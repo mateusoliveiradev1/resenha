@@ -51,6 +51,7 @@ export function CtaStrip({
                         <Link
                             href={supportHref}
                             data-monetization-event="cta_click"
+                            data-label={supportLabel}
                             data-journey="support"
                             data-source={source}
                             data-destination={supportHref}
@@ -63,6 +64,7 @@ export function CtaStrip({
                         <Link
                             href={commercialHref}
                             data-monetization-event="cta_click"
+                            data-label={commercialLabel}
                             data-journey="commercial"
                             data-source={source}
                             data-destination={commercialHref}
