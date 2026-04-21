@@ -2,10 +2,17 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Badge, Card, CardContent, Container, shouldBypassNextImageOptimization } from "@resenha/ui";
 import { buildScheduleBuckets, buildStandings, db, presentMatches } from "@resenha/db";
+import type { MatchPresentation } from "@resenha/db";
 import { championshipGroups, championshipParticipants, championships, clubs, matches } from "@resenha/db/schema";
 import { asc, eq } from "drizzle-orm";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { toDisplayMatch } from "@/lib/matches";
+import {
+    fetchPlacarsoftCompetitionData,
+    getOfficialPlacarsoftSource,
+    type PlacarsoftCompetitionData,
+    type PlacarsoftGame,
+} from "@/lib/placarsoft";
 import { CompetitionSchedulePanel } from "./CompetitionSchedulePanel";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +20,258 @@ const DISPLAY_TIMEZONE = "America/Sao_Paulo";
 
 type RecentFormResult = "W" | "D" | "L";
 type StandingRowData = ReturnType<typeof buildStandings>[number];
+type ChampionshipData = NonNullable<Awaited<ReturnType<typeof db.query.championships.findFirst>>>;
+type ClubData = Awaited<ReturnType<typeof db.query.clubs.findMany>>[number];
+
+interface OfficialCompetitionState {
+    sourceConfigured: boolean;
+    sourcePageUrl: string | null;
+    data: PlacarsoftCompetitionData | null;
+    failed: boolean;
+}
+
+async function loadOfficialCompetitionState(slug: string): Promise<OfficialCompetitionState> {
+    const source = getOfficialPlacarsoftSource(slug);
+
+    if (!source) {
+        return {
+            sourceConfigured: false,
+            sourcePageUrl: null,
+            data: null,
+            failed: false,
+        };
+    }
+
+    try {
+        return {
+            sourceConfigured: true,
+            sourcePageUrl: source.sourcePageUrl,
+            data: await fetchPlacarsoftCompetitionData(source),
+            failed: false,
+        };
+    } catch {
+        return {
+            sourceConfigured: true,
+            sourcePageUrl: source.sourcePageUrl,
+            data: null,
+            failed: true,
+        };
+    }
+}
+
+function getOfficialMatchType(championship: ChampionshipData): MatchPresentation["type"] {
+    return championship.surface === "FUTSAL" ? "FUTSAL" : "CAMPO";
+}
+
+function getOfficialCompetitionName(officialData: PlacarsoftCompetitionData) {
+    return officialData.competition.commonName ?? officialData.competition.nickname ?? officialData.competition.name;
+}
+
+function normalizeClubLookupValue(value?: string | null) {
+    const stopWords = new Set(["ac", "club", "da", "das", "de", "do", "dos", "e", "ec", "fc", "futsal", "na", "no", "sc", "sport"]);
+
+    return (value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .split(/\s+/)
+        .filter((token) => token && !stopWords.has(token))
+        .map((token) => (token.length > 4 && token.endsWith("s") ? token.slice(0, -1) : token))
+        .join(" ")
+        .trim();
+}
+
+function getLocalClubForOfficialTeam(
+    team: { name?: string | null; shortName?: string | null },
+    clubsData: ClubData[],
+) {
+    const officialNameKey = normalizeClubLookupValue(team.name);
+    const officialKeys = new Set([
+        officialNameKey,
+        normalizeClubLookupValue(team.shortName),
+    ].filter(Boolean));
+
+    for (const club of clubsData) {
+        const localKeys = [
+            normalizeClubLookupValue(club.name),
+            normalizeClubLookupValue(club.shortName),
+            normalizeClubLookupValue(club.slug),
+        ].filter(Boolean);
+
+        if (localKeys.some((key) => officialKeys.has(key))) {
+            return club;
+        }
+
+        if (
+            officialNameKey &&
+            localKeys.some((key) => key.length >= 6 && (officialNameKey.includes(key) || key.includes(officialNameKey)))
+        ) {
+            return club;
+        }
+    }
+
+    return null;
+}
+
+function applyLocalLogosToOfficialStandings(
+    standings: PlacarsoftCompetitionData["standings"],
+    clubsData: ClubData[],
+) {
+    return standings.map((row) => {
+        const localClub = getLocalClubForOfficialTeam(
+            { name: row.clubName, shortName: row.clubShortName },
+            clubsData,
+        );
+
+        return localClub?.logoUrl
+            ? {
+                ...row,
+                clubLogoUrl: localClub.logoUrl,
+            }
+            : row;
+    });
+}
+
+function toOfficialMatchPresentation(args: {
+    game: PlacarsoftGame;
+    officialData: PlacarsoftCompetitionData;
+    championship: ChampionshipData;
+    clubsData: ClubData[];
+}): MatchPresentation {
+    const { game, officialData, championship, clubsData } = args;
+    const localHomeClub = getLocalClubForOfficialTeam(
+        { name: game.homeTeam.name, shortName: game.homeTeam.shortName },
+        clubsData,
+    );
+    const localAwayClub = getLocalClubForOfficialTeam(
+        { name: game.awayTeam.name, shortName: game.awayTeam.shortName },
+        clubsData,
+    );
+
+    return {
+        id: game.id,
+        championshipId: championship.id,
+        championshipGroupId: `placarsoft:${officialData.group.id}`,
+        date: game.date,
+        location: game.location,
+        type: getOfficialMatchType(championship),
+        category: "CHAMPIONSHIP",
+        status: game.status,
+        matchday: game.matchday,
+        scoreHome: game.scoreHome,
+        scoreAway: game.scoreAway,
+        tiebreakHome: game.tiebreakHome,
+        tiebreakAway: game.tiebreakAway,
+        competitionName: getOfficialCompetitionName(officialData),
+        phaseLabel: officialData.phase.name,
+        roundLabel: game.roundName,
+        groupName: officialData.group.name,
+        resenhaClubId: null,
+        isResenhaMatch:
+            game.homeTeam.name.toLowerCase().includes("resenha") ||
+            game.awayTeam.name.toLowerCase().includes("resenha"),
+        isResenhaHome: game.homeTeam.name.toLowerCase().includes("resenha"),
+        homeTeam: {
+            id: game.homeTeam.sourceTeamId,
+            name: game.homeTeam.name,
+            shortName: game.homeTeam.shortName,
+            logoUrl: localHomeClub?.logoUrl ?? game.homeTeam.logoUrl,
+        },
+        awayTeam: {
+            id: game.awayTeam.sourceTeamId,
+            name: game.awayTeam.name,
+            shortName: game.awayTeam.shortName,
+            logoUrl: localAwayClub?.logoUrl ?? game.awayTeam.logoUrl,
+        },
+        opponentName: game.awayTeam.name,
+        opponentLogo: localAwayClub?.logoUrl ?? game.awayTeam.logoUrl,
+    };
+}
+
+function buildOfficialRecentFormMap(officialData: PlacarsoftCompetitionData) {
+    return new Map<string, RecentFormResult[]>(
+        officialData.standings.map((row) => [row.clubId, [...row.recentForm]]),
+    );
+}
+
+function formatOfficialUpdatedAt(officialData: PlacarsoftCompetitionData) {
+    if (officialData.freshness.updatedAtDate) {
+        return officialData.freshness.updatedAtDate.toLocaleString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: DISPLAY_TIMEZONE,
+        });
+    }
+
+    return officialData.freshness.updatedAt;
+}
+
+function CompetitionSourceNotice({
+    officialState,
+}: {
+    officialState: OfficialCompetitionState;
+}) {
+    if (!officialState.sourceConfigured) {
+        return null;
+    }
+
+    if (officialState.data) {
+        const updatedAt = formatOfficialUpdatedAt(officialState.data);
+
+        return (
+            <section className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-50">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p className="font-semibold">Fonte oficial Placarsoft ativa</p>
+                        <p className="mt-1 text-emerald-50/80">
+                            Classificacao e jogos carregados da fonte oficial da competicao
+                            {updatedAt ? `, com ultima atualizacao em ${updatedAt}.` : "."}
+                        </p>
+                    </div>
+                    <a
+                        href={officialState.data.sourcePageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex shrink-0 items-center justify-center rounded-full border border-emerald-300/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-50 transition-colors hover:border-emerald-200/70 hover:bg-emerald-300/10"
+                    >
+                        Abrir fonte
+                    </a>
+                </div>
+            </section>
+        );
+    }
+
+    if (officialState.failed) {
+        return (
+            <section className="mt-6 rounded-2xl border border-amber-300/25 bg-amber-400/10 px-5 py-4 text-sm text-amber-50">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p className="font-semibold">Fonte oficial indisponivel agora</p>
+                        <p className="mt-1 text-amber-50/82">
+                            O Placarsoft nao respondeu a tempo. A pagina esta exibindo os dados locais cadastrados no site, sem trata-los como atualizacao oficial.
+                        </p>
+                    </div>
+                    {officialState.sourcePageUrl && (
+                        <a
+                            href={officialState.sourcePageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex shrink-0 items-center justify-center rounded-full border border-amber-200/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-50 transition-colors hover:border-amber-100/70 hover:bg-amber-200/10"
+                        >
+                            Ver fonte
+                        </a>
+                    )}
+                </div>
+            </section>
+        );
+    }
+
+    return null;
+}
 
 function getRecentFormMap(
     matchesList: ReturnType<typeof presentMatches>,
@@ -455,7 +714,8 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
         notFound();
     }
 
-    const [clubsData, participantRows, groupRows, matchRows] = await Promise.all([
+    const officialStatePromise = loadOfficialCompetitionState(slug);
+    const [clubsData, participantRows, groupRows, matchRows, officialState] = await Promise.all([
         db.query.clubs.findMany({
             orderBy: [asc(clubs.name)],
         }),
@@ -471,6 +731,7 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
             where: eq(matches.championshipId, championship.id),
             orderBy: [asc(matches.date)],
         }),
+        officialStatePromise,
     ]);
 
     const presentedMatches = presentMatches({
@@ -494,9 +755,26 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
         clubs: clubsData,
         currentStandings: standings,
     });
+    const officialData = officialState.data;
+    const usingOfficialData = Boolean(officialData);
+    const officialStandings = officialData
+        ? applyLocalLogosToOfficialStandings(officialData.standings, clubsData)
+        : null;
     const hasGroupedStandings =
         groupRows.length > 0 && (championship.format === "GROUP_STAGE" || championship.format === "HYBRID");
-    const standingsSections = hasGroupedStandings
+    const standingsSections = officialData
+        ? [
+            {
+                id: `placarsoft:${officialData.group.id}`,
+                badgeLabel: "Fonte oficial",
+                title: officialData.group.name,
+                description: "Tabela carregada do Placarsoft com a ordem e os numeros oficiais da competicao.",
+                standings: officialStandings ?? officialData.standings,
+                recentForm: buildOfficialRecentFormMap(officialData),
+                positionDeltaMap: new Map<string, number>(),
+            },
+        ]
+        : hasGroupedStandings
         ? groupRows.map((group, index) => {
             const groupParticipants = participantRows
                 .filter((participant) => participant.championshipGroupId === group.id)
@@ -541,7 +819,10 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
                 positionDeltaMap: standingsPositionDeltaMap,
             },
         ];
-    const scheduleState = buildScheduleBuckets(presentedMatches);
+    const scheduleMatches = officialData
+        ? officialData.games.map((game) => toOfficialMatchPresentation({ game, officialData, championship, clubsData }))
+        : presentedMatches;
+    const scheduleState = buildScheduleBuckets(scheduleMatches);
     const scheduleBuckets = scheduleState.buckets.map((bucket) => ({
         id: bucket.id,
         kind: bucket.kind,
@@ -550,7 +831,9 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
         matches: bucket.matches.map((match) => toDisplayMatch(match, { perspective: "FIXTURE" })),
     }));
     const expectedMatchesPerRound =
-        championship.format === "KNOCKOUT" ? null : Math.floor(participantRows.length / 2);
+        championship.format === "KNOCKOUT"
+            ? null
+            : Math.floor((officialData?.standings.length ?? participantRows.length) / 2);
 
     return (
         <div className="min-h-screen py-12 lg:py-20">
@@ -575,14 +858,16 @@ export default async function CampeonatoDetalhePage({ params }: { params: Promis
                                 {championship.surface}
                             </Badge>
                             <Badge variant="outline" className="border-cream-100/10 bg-navy-950/40 text-cream-100">
-                                {participantRows.length} participantes
+                                {usingOfficialData ? officialData?.standings.length : participantRows.length} participantes
                             </Badge>
                             <Badge variant="outline" className="border-cream-100/10 bg-navy-950/40 text-cream-100">
-                                {matchRows.length} jogos cadastrados
+                                {usingOfficialData ? officialData?.games.length : matchRows.length} jogos {usingOfficialData ? "oficiais" : "cadastrados"}
                             </Badge>
                         </div>
                     </div>
                 </section>
+
+                <CompetitionSourceNotice officialState={officialState} />
 
                 <section className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.95fr)]">
                     <div className="space-y-6">

@@ -22,6 +22,7 @@ import {
 import { CommercialOfferCard, type CommercialAddOn, type CommercialOffer } from "@/components/monetization/CommercialOfferCard";
 import { FaqBlock, type FaqItem } from "@/components/monetization/FaqBlock";
 import { LeadForm } from "@/components/monetization/LeadForm";
+import { CONTACT_CHANNELS, buildWhatsAppHref } from "@/lib/contact";
 import { createPageMetadata } from "@/lib/seo";
 
 type PartnerItem = {
@@ -37,9 +38,42 @@ type PlacementItem = PartnerItem & {
     context: string;
 };
 
-const commercialWhatsappMessage =
-    "Oi, Resenha! Quero divulgar minha empresa no site do Resenha e entender onde ela pode aparecer.";
-const commercialWhatsappHref = `https://wa.me/?text=${encodeURIComponent(commercialWhatsappMessage)}`;
+const commercialContact = CONTACT_CHANNELS.site;
+const commercialWhatsappMessages = {
+    hero: "Oi, Resenha! Vim pela pagina Seja parceiro e quero entender como minha empresa pode aparecer no site.",
+    baseOffer: "Oi, Resenha! Quero aparecer na pagina de parceiros do site. Minha empresa e: ",
+    offeredArticle: "Oi, Resenha! Quero falar sobre materia com oferecimento no site. Minha empresa e: ",
+    roundPartner: "Oi, Resenha! Quero falar sobre parceiro da rodada no site. Minha empresa e: ",
+    highlight: "Oi, Resenha! Quero falar sobre um destaque maior na pagina de parceiros do site. Minha empresa e: ",
+    comparison: "Oi, Resenha! Vim pela comparacao entre apoiar o time e anunciar no site. Quero conversar sobre anuncio no site.",
+    afterExamples: "Oi, Resenha! Gostei dos exemplos de espaco no site e quero ver onde minha empresa pode entrar primeiro.",
+    afterOffer: "Oi, Resenha! Quero entender o comeco mais simples para aparecer no site.",
+    contactIntro: "Oi, Resenha! Quero falar direto sobre divulgacao da minha empresa no site. Minha empresa e: ",
+    afterFaq: "Oi, Resenha! Ainda tenho uma duvida sobre divulgar minha empresa no site.",
+    finalCta: "Oi, Resenha! Quero mandar uma mensagem sobre parceria para aparecer no site. Minha empresa e: "
+} as const;
+
+function buildCommercialWhatsappHref(message: string) {
+    return buildWhatsAppHref(message, "site");
+}
+
+function buildDynamicCommercialWhatsappHref(title: string) {
+    return buildCommercialWhatsappHref(`Oi, Resenha! Vim pela pagina Seja parceiro e quero conversar sobre "${title}" no site. Minha empresa e: `);
+}
+
+const commercialWhatsappHrefs = {
+    hero: buildCommercialWhatsappHref(commercialWhatsappMessages.hero),
+    baseOffer: buildCommercialWhatsappHref(commercialWhatsappMessages.baseOffer),
+    offeredArticle: buildCommercialWhatsappHref(commercialWhatsappMessages.offeredArticle),
+    roundPartner: buildCommercialWhatsappHref(commercialWhatsappMessages.roundPartner),
+    highlight: buildCommercialWhatsappHref(commercialWhatsappMessages.highlight),
+    comparison: buildCommercialWhatsappHref(commercialWhatsappMessages.comparison),
+    afterExamples: buildCommercialWhatsappHref(commercialWhatsappMessages.afterExamples),
+    afterOffer: buildCommercialWhatsappHref(commercialWhatsappMessages.afterOffer),
+    contactIntro: buildCommercialWhatsappHref(commercialWhatsappMessages.contactIntro),
+    afterFaq: buildCommercialWhatsappHref(commercialWhatsappMessages.afterFaq),
+    finalCta: buildCommercialWhatsappHref(commercialWhatsappMessages.finalCta)
+} as const;
 const defaultHeroHeadline = "Divulgue sua empresa no site do Resenha";
 const defaultHeroDescription =
     "Quem acompanha jogos, entrevistas, cronicas e parceiros do clube pode ver sua empresa e chamar voce pelo WhatsApp ou Instagram.";
@@ -146,7 +180,7 @@ const commercialOffer: CommercialOffer = {
     note: "Chame no WhatsApp e veja o formato mais simples para sua empresa.",
     cta: {
         label: "Quero aparecer no Resenha",
-        href: commercialWhatsappHref,
+        href: commercialWhatsappHrefs.baseOffer,
         external: true
     }
 };
@@ -158,7 +192,7 @@ const commercialAddOns: CommercialAddOn[] = [
         badge: "Oferecimento",
         cta: {
             label: "Falar sobre materia",
-            href: commercialWhatsappHref,
+            href: commercialWhatsappHrefs.offeredArticle,
             external: true
         }
     },
@@ -168,7 +202,7 @@ const commercialAddOns: CommercialAddOn[] = [
         badge: "Rodada",
         cta: {
             label: "Falar sobre rodada",
-            href: commercialWhatsappHref,
+            href: commercialWhatsappHrefs.roundPartner,
             external: true
         }
     },
@@ -178,7 +212,7 @@ const commercialAddOns: CommercialAddOn[] = [
         badge: "Destaque",
         cta: {
             label: "Falar sobre destaque",
-            href: commercialWhatsappHref,
+            href: commercialWhatsappHrefs.highlight,
             external: true
         }
     }
@@ -196,7 +230,7 @@ const comparisonItems = [
         title: "Anunciar no site",
         description: "Divulga sua empresa em espacos combinados do site, como parceiros, materias e conteudos de jogo.",
         ctaLabel: "Falar no WhatsApp",
-        href: commercialWhatsappHref,
+        href: commercialWhatsappHrefs.comparison,
         icon: MessageCircle,
         external: true
     }
@@ -286,7 +320,7 @@ async function getCommercialOfferContent() {
             note: baseOffer.note ?? undefined,
             cta: {
                 label: baseOffer.ctaLabel ?? commercialOffer.cta?.label ?? "Quero aparecer no Resenha",
-                href: commercialWhatsappHref,
+                href: buildDynamicCommercialWhatsappHref(baseOffer.title),
                 external: true
             }
         }
@@ -299,7 +333,7 @@ async function getCommercialOfferContent() {
             badge: row.badge ?? undefined,
             cta: {
                 label: row.ctaLabel ?? "Falar no WhatsApp",
-                href: commercialWhatsappHref,
+                href: buildDynamicCommercialWhatsappHref(row.title),
                 external: true
             }
         }))
@@ -355,7 +389,7 @@ export const dynamic = "force-dynamic";
 
 function CommercialWhatsappButton({
     label = "Falar no WhatsApp",
-    href = commercialWhatsappHref,
+    href = commercialWhatsappHrefs.hero,
     source,
     className,
     experiment
@@ -367,12 +401,13 @@ function CommercialWhatsappButton({
     experiment?: ActiveHeroExperiment | null;
 }) {
     const isExternal = /^https?:\/\//.test(href);
+    const trackingDestination = href.startsWith(`https://wa.me/${commercialContact.whatsappNumber}`) ? commercialContact.whatsappNumber : href;
     const commonProps = {
         "data-monetization-event": "cta_click",
         "data-label": label,
         "data-journey": "commercial",
         "data-source": source,
-        "data-destination": href,
+        "data-destination": trackingDestination,
         "data-experiment-key": experiment?.experimentKey,
         "data-experiment-variant": experiment?.variantLabel
     };
@@ -402,7 +437,7 @@ export default async function SejaParceiroPage() {
     const heroHeadline = heroExperiment?.headline ?? defaultHeroHeadline;
     const heroDescription = heroExperiment?.supportingCopy ?? defaultHeroDescription;
     const heroCtaLabel = heroExperiment?.ctaLabel ?? "Falar no WhatsApp";
-    const heroCtaHref = heroExperiment?.destination ?? commercialWhatsappHref;
+    const heroCtaHref = heroExperiment?.destination ?? commercialWhatsappHrefs.hero;
 
     return (
         <div className="min-h-screen bg-navy-950 py-16 lg:py-20">
@@ -560,7 +595,11 @@ export default async function SejaParceiroPage() {
                         <p className="text-sm leading-7 text-cream-300">
                             Gostou de um formato? Chame o Resenha e veja onde sua empresa pode entrar primeiro.
                         </p>
-                        <CommercialWhatsappButton source="partner_page_after_examples" className="w-full rounded-full sm:w-auto" />
+                        <CommercialWhatsappButton
+                            source="partner_page_after_examples"
+                            href={commercialWhatsappHrefs.afterExamples}
+                            className="w-full rounded-full sm:w-auto"
+                        />
                     </div>
                 </section>
 
@@ -674,7 +713,12 @@ export default async function SejaParceiroPage() {
                         <p className="text-sm leading-7 text-cream-300">
                             Nao precisa escolher tudo agora. Chame no WhatsApp e veja o comeco mais simples.
                         </p>
-                        <CommercialWhatsappButton source="partner_page_after_offer" label="Chamar no WhatsApp" className="w-full rounded-full sm:w-auto" />
+                        <CommercialWhatsappButton
+                            source="partner_page_after_offer"
+                            label="Chamar no WhatsApp"
+                            href={commercialWhatsappHrefs.afterOffer}
+                            className="w-full rounded-full sm:w-auto"
+                        />
                     </div>
                 </section>
 
@@ -797,7 +841,12 @@ export default async function SejaParceiroPage() {
                                 ))}
                             </div>
                             <div className="mt-6">
-                                <CommercialWhatsappButton source="partner_page_contact_intro" label="Falar direto no WhatsApp" className="w-full rounded-full sm:w-auto" />
+                                <CommercialWhatsappButton
+                                    source="partner_page_contact_intro"
+                                    label="Falar direto no WhatsApp"
+                                    href={commercialWhatsappHrefs.contactIntro}
+                                    className="w-full rounded-full sm:w-auto"
+                                />
                             </div>
                         </CardContent>
                     </Card>
@@ -818,7 +867,12 @@ export default async function SejaParceiroPage() {
                     <p className="text-sm leading-7 text-cream-300">
                         Ainda ficou alguma duvida? Chame no WhatsApp e o Resenha mostra os formatos com calma.
                     </p>
-                    <CommercialWhatsappButton source="partner_page_after_faq" label="Tirar duvida no WhatsApp" className="w-full rounded-full sm:w-auto" />
+                    <CommercialWhatsappButton
+                        source="partner_page_after_faq"
+                        label="Tirar duvida no WhatsApp"
+                        href={commercialWhatsappHrefs.afterFaq}
+                        className="w-full rounded-full sm:w-auto"
+                    />
                 </section>
 
                 <section className="mt-12 overflow-hidden rounded-[2rem] border border-gold-400/20 bg-[linear-gradient(135deg,rgba(212,168,67,0.14),rgba(10,22,40,0.96)_42%,rgba(6,14,26,0.98))] px-6 py-8 sm:px-8 lg:px-10" aria-labelledby="partner-final-cta-heading">
@@ -833,7 +887,12 @@ export default async function SejaParceiroPage() {
                             Se voce tem um comercio, servico ou projeto local, chame o Resenha e veja onde sua marca pode entrar no site.
                         </p>
                         <div className="mt-7">
-                            <CommercialWhatsappButton source="partner_page_final_cta" label="Mandar mensagem agora" className="w-full rounded-full sm:w-auto" />
+                            <CommercialWhatsappButton
+                                source="partner_page_final_cta"
+                                label="Mandar mensagem agora"
+                                href={commercialWhatsappHrefs.finalCta}
+                                className="w-full rounded-full sm:w-auto"
+                            />
                         </div>
                     </div>
                 </section>

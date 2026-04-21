@@ -1,8 +1,31 @@
-export const CONTACT_DISPLAY_PHONE = "17 99673-5427";
-export const CONTACT_WHATSAPP_NUMBER = "5517996735427";
-export const CONTACT_EMAIL = "warface01031999@gmail.com";
+export const CONTACT_CHANNELS = {
+    team: {
+        id: "team",
+        label: "Time do Resenha",
+        shortLabel: "Time",
+        displayPhone: "17 99658-2337",
+        whatsappNumber: "5517996582337",
+        email: "warface01031999@gmail.com"
+    },
+    site: {
+        id: "site",
+        label: "Site e suporte tecnico",
+        shortLabel: "Site",
+        displayPhone: "17 99673-5427",
+        whatsappNumber: "5517996735427",
+        email: "warface01031999@gmail.com"
+    }
+} as const;
 
-export const DEFAULT_CONTACT_MESSAGE = "Oi, Resenha! Quero falar com o clube pelo site.";
+export type ContactChannelId = keyof typeof CONTACT_CHANNELS;
+export type ContactChannel = (typeof CONTACT_CHANNELS)[ContactChannelId];
+
+export const DEFAULT_CONTACT_CHANNEL_ID: ContactChannelId = "team";
+export const CONTACT_DISPLAY_PHONE = CONTACT_CHANNELS[DEFAULT_CONTACT_CHANNEL_ID].displayPhone;
+export const CONTACT_WHATSAPP_NUMBER = CONTACT_CHANNELS[DEFAULT_CONTACT_CHANNEL_ID].whatsappNumber;
+export const CONTACT_EMAIL = CONTACT_CHANNELS[DEFAULT_CONTACT_CHANNEL_ID].email;
+
+export const DEFAULT_CONTACT_MESSAGE = "Oi, Resenha! Vim pelo site e quero falar com o time.";
 export const DEFAULT_CONTACT_EMAIL_SUBJECT = "Contato pelo site do Resenha RFC";
 
 type QueryParamValue = string | null | undefined;
@@ -15,13 +38,16 @@ export type ContactIntentId =
     | "friendlies-games"
     | "press-content"
     | "institutional"
-    | "general-questions";
+    | "general-questions"
+    | "site-support";
 
 export type ContactAction = {
     label: string;
     type: ContactActionType;
     href: string;
     destination: string;
+    displayDestination?: string;
+    channelId?: ContactChannelId;
     message?: string;
     external?: boolean;
 };
@@ -30,7 +56,8 @@ export type ContactIntent = {
     id: ContactIntentId;
     title: string;
     description: string;
-    journey: "commercial" | "support" | "sports" | "editorial" | "institutional" | "general";
+    journey: "commercial" | "support" | "sports" | "editorial" | "institutional" | "general" | "site";
+    channelId: ContactChannelId;
     primaryAction: ContactAction;
     secondaryAction?: ContactAction;
     keywords: string[];
@@ -45,37 +72,60 @@ function buildQueryString(params: Record<string, QueryParamValue>) {
     return query ? `?${query}` : "";
 }
 
-export function buildWhatsAppHref(message = DEFAULT_CONTACT_MESSAGE) {
-    return `https://wa.me/${CONTACT_WHATSAPP_NUMBER}${buildQueryString({ text: message })}`;
+export function getContactChannel(channelId: ContactChannelId = DEFAULT_CONTACT_CHANNEL_ID) {
+    return CONTACT_CHANNELS[channelId];
+}
+
+export function buildWhatsAppHref(message = DEFAULT_CONTACT_MESSAGE, channelId: ContactChannelId = DEFAULT_CONTACT_CHANNEL_ID) {
+    const channel = getContactChannel(channelId);
+
+    return `https://wa.me/${channel.whatsappNumber}${buildQueryString({ text: message })}`;
 }
 
 export function buildMailtoHref({
     subject = DEFAULT_CONTACT_EMAIL_SUBJECT,
-    body
+    body,
+    channelId = DEFAULT_CONTACT_CHANNEL_ID
 }: {
     subject?: string;
     body?: string;
+    channelId?: ContactChannelId;
 } = {}) {
-    return `mailto:${CONTACT_EMAIL}${buildQueryString({ subject, body })}`;
+    const channel = getContactChannel(channelId);
+
+    return `mailto:${channel.email}${buildQueryString({ subject, body })}`;
 }
 
-function whatsappAction(label: string, message: string): ContactAction {
+function whatsappAction(label: string, message: string, channelId: ContactChannelId = DEFAULT_CONTACT_CHANNEL_ID): ContactAction {
+    const channel = getContactChannel(channelId);
+
     return {
         label,
         type: "whatsapp",
-        href: buildWhatsAppHref(message),
-        destination: CONTACT_WHATSAPP_NUMBER,
+        href: buildWhatsAppHref(message, channelId),
+        destination: channel.whatsappNumber,
+        displayDestination: channel.displayPhone,
+        channelId,
         message,
         external: true
     };
 }
 
-function emailAction(label: string, subject: string, body?: string): ContactAction {
+function emailAction(
+    label: string,
+    subject: string,
+    body?: string,
+    channelId: ContactChannelId = DEFAULT_CONTACT_CHANNEL_ID
+): ContactAction {
+    const channel = getContactChannel(channelId);
+
     return {
         label,
         type: "email",
-        href: buildMailtoHref({ subject, body }),
-        destination: CONTACT_EMAIL,
+        href: buildMailtoHref({ subject, body, channelId }),
+        destination: channel.email,
+        displayDestination: channel.email,
+        channelId,
         message: body,
         external: false
     };
@@ -93,35 +143,44 @@ function internalAction(label: string, href: string): ContactAction {
 export const CONTACT_INTENTS: ContactIntent[] = [
     {
         id: "commercial-partnership",
-        title: "Parceria comercial",
+        title: "Divulgar empresa no site",
         description:
-            "Para marcas, comercios e projetos que querem conversar sobre divulgacao, patrocinio ou presenca no site.",
+            "Para marcas, comercios e projetos que querem conversar sobre divulgacao ou presenca no site.",
         journey: "commercial",
+        channelId: "site",
         primaryAction: internalAction("Ver caminho para parceiros", "/seja-parceiro"),
         secondaryAction: whatsappAction(
             "Chamar no WhatsApp",
-            "Oi, Resenha! Quero conversar sobre parceria comercial, patrocinio ou divulgacao no site."
+            "Oi, Resenha! Vim pelo site e quero conversar sobre divulgacao da minha empresa no portal. Minha empresa e: ",
+            "site"
         ),
-        keywords: ["parceria", "patrocinio", "anuncio", "divulgacao", "comercial"]
+        keywords: ["parceria", "anuncio", "divulgacao", "comercial", "site"]
     },
     {
         id: "club-support",
-        title: "Apoiar o clube",
+        title: "Apoiar ou patrocinar o clube",
         description:
-            "Para quem quer fortalecer estrutura, materiais, rotina esportiva ou alguma necessidade atual do Resenha.",
+            "Para quem quer apoiar, patrocinar ou fortalecer estrutura, materiais, rotina esportiva ou alguma necessidade atual do Resenha.",
         journey: "support",
+        channelId: "team",
         primaryAction: internalAction("Ver formas de apoio", "/apoiar-o-resenha"),
-        secondaryAction: whatsappAction("Falar sobre apoio", "Oi, Resenha! Quero entender como posso apoiar o clube."),
-        keywords: ["apoio", "apoiador", "estrutura", "materiais", "clube"]
+        secondaryAction: whatsappAction(
+            "Falar sobre apoio",
+            "Oi, Resenha! Vim pelo site e quero conversar sobre apoio ou patrocinio para o time. Quero entender as necessidades atuais e como posso ajudar.",
+            "team"
+        ),
+        keywords: ["apoio", "apoiador", "patrocinio", "estrutura", "materiais", "clube", "time"]
     },
     {
         id: "friendlies-games",
         title: "Amistosos e jogos",
         description: "Para combinar partidas, desafios, agendas de jogo e conversas esportivas com o Resenha.",
         journey: "sports",
+        channelId: "team",
         primaryAction: whatsappAction(
             "Combinar pelo WhatsApp",
-            "Oi, Resenha! Quero conversar sobre amistoso, jogo ou agenda de partida."
+            "Oi, Resenha! Vim pelo site e quero conversar sobre amistoso, jogo ou agenda de partida. Podemos ver disponibilidade?",
+            "team"
         ),
         keywords: ["amistoso", "jogo", "agenda", "partida", "desafio"]
     },
@@ -131,14 +190,17 @@ export const CONTACT_INTENTS: ContactIntent[] = [
         description:
             "Para pautas, entrevistas, fotos, historias, materiais editoriais e conversas sobre conteudo do clube.",
         journey: "editorial",
+        channelId: "team",
         primaryAction: emailAction(
             "Enviar e-mail",
             "Imprensa e conteudo - Resenha RFC",
-            "Oi, Resenha! Quero falar sobre imprensa, conteudo ou pauta editorial."
+            "Oi, Resenha!\n\nVim pelo site e quero falar sobre imprensa, conteudo ou pauta editorial do clube.\n\nContexto:\n",
+            "team"
         ),
         secondaryAction: whatsappAction(
             "Chamar no WhatsApp",
-            "Oi, Resenha! Quero falar sobre imprensa, conteudo ou pauta editorial."
+            "Oi, Resenha! Vim pelo site e quero falar sobre imprensa, conteudo ou pauta editorial do clube.",
+            "team"
         ),
         keywords: ["imprensa", "conteudo", "pauta", "entrevista", "fotos"]
     },
@@ -148,24 +210,64 @@ export const CONTACT_INTENTS: ContactIntent[] = [
         description:
             "Para convites, documentos, comunicados, relacionamento institucional e conversas formais com o clube.",
         journey: "institutional",
+        channelId: "team",
         primaryAction: emailAction(
             "Enviar e-mail institucional",
             "Assunto institucional - Resenha RFC",
-            "Oi, Resenha! Quero tratar de um assunto institucional com o clube."
+            "Oi, Resenha!\n\nVim pelo site e quero tratar de um assunto institucional com o clube.\n\nContexto:\n",
+            "team"
         ),
         keywords: ["institucional", "convite", "documento", "comunicado", "clube"]
     },
     {
         id: "general-questions",
-        title: "Duvidas gerais",
-        description: "Para perguntas gerais sobre o Resenha, o site, a rotina do clube ou o melhor caminho de contato.",
+        title: "Duvidas gerais do clube",
+        description: "Para perguntas gerais sobre o Resenha, a rotina do clube ou o melhor caminho de contato.",
         journey: "general",
-        primaryAction: whatsappAction("Tirar duvida no WhatsApp", "Oi, Resenha! Tenho uma duvida geral e vim pelo site."),
+        channelId: "team",
+        primaryAction: whatsappAction(
+            "Tirar duvida no WhatsApp",
+            "Oi, Resenha! Vim pelo site e tenho uma duvida geral sobre o clube. Podem me orientar?",
+            "team"
+        ),
         secondaryAction: emailAction(
             "Mandar por e-mail",
             "Duvida geral - Resenha RFC",
-            "Oi, Resenha! Tenho uma duvida geral e vim pelo site."
+            "Oi, Resenha!\n\nVim pelo site e tenho uma duvida geral sobre o clube.\n\nMinha duvida:\n",
+            "team"
         ),
-        keywords: ["duvida", "fale conosco", "contato", "site", "Resenha RFC"]
+        keywords: ["duvida", "fale conosco", "contato", "clube", "Resenha RFC"]
+    },
+    {
+        id: "site-support",
+        title: "Suporte do site",
+        description:
+            "Para avisar sobre erro, manutencao, conteudo tecnico, acesso ou administracao do portal.",
+        journey: "site",
+        channelId: "site",
+        primaryAction: whatsappAction(
+            "Falar com suporte do site",
+            "Oi, Resenha! Vim pelo site e quero falar sobre suporte, manutencao ou problema tecnico no portal. Posso explicar o caso?",
+            "site"
+        ),
+        secondaryAction: emailAction(
+            "Enviar e-mail sobre o site",
+            "Suporte do site - Resenha RFC",
+            "Oi, Resenha!\n\nVim pelo site e quero falar sobre suporte, manutencao ou problema tecnico no portal.\n\nDescricao:\n",
+            "site"
+        ),
+        keywords: ["site", "suporte", "manutencao", "portal", "tecnico", "acesso"]
     }
 ];
+
+export function getContactIntentByTitle(title: string) {
+    return CONTACT_INTENTS.find((intent) => intent.title === title);
+}
+
+export function resolveContactChannelForIntent(intent?: Pick<ContactIntent, "channelId"> | null) {
+    return getContactChannel(intent?.channelId ?? DEFAULT_CONTACT_CHANNEL_ID);
+}
+
+export function resolveContactChannelForSubject(subject: string) {
+    return resolveContactChannelForIntent(getContactIntentByTitle(subject));
+}

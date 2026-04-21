@@ -4,12 +4,11 @@ import * as React from "react";
 import { Badge, Button, Card, CardContent, FormField, cn } from "@resenha/ui";
 import { AlertCircle, CheckCircle2, Mail, MessageCircle, Send } from "lucide-react";
 import {
-    CONTACT_DISPLAY_PHONE,
-    CONTACT_EMAIL,
     CONTACT_INTENTS,
-    CONTACT_WHATSAPP_NUMBER,
+    type ContactChannelId,
     buildMailtoHref,
-    buildWhatsAppHref
+    buildWhatsAppHref,
+    resolveContactChannelForSubject
 } from "@/lib/contact";
 import { trackMonetizationEvent } from "@/lib/analytics";
 
@@ -32,6 +31,8 @@ type GeneratedAction = {
     href: string;
     label: string;
     destination: string;
+    displayDestination: string;
+    contactChannelId: ContactChannelId;
 };
 
 const initialValues: ContactFormValues = {
@@ -147,25 +148,31 @@ function buildGeneratedMessage(values: ContactFormValues) {
 
 function buildGeneratedAction(values: ContactFormValues): GeneratedAction {
     const body = buildGeneratedMessage(values);
+    const contactChannel = resolveContactChannelForSubject(values.subject);
 
     if (values.preferredChannel === "email") {
         return {
             channel: "email",
             href: buildMailtoHref({
                 subject: `${values.subject} - contato pelo site do Resenha RFC`,
-                body
+                body,
+                channelId: contactChannel.id
             }),
             label: "Abrir e-mail novamente",
-            destination: CONTACT_EMAIL
+            destination: contactChannel.email,
+            displayDestination: contactChannel.email,
+            contactChannelId: contactChannel.id
         };
     }
 
     return {
         channel: "whatsapp",
-            href: buildWhatsAppHref(body),
-            label: "Abrir WhatsApp novamente",
-            destination: CONTACT_WHATSAPP_NUMBER
-        };
+        href: buildWhatsAppHref(body, contactChannel.id),
+        label: "Abrir WhatsApp novamente",
+        destination: contactChannel.whatsappNumber,
+        displayDestination: contactChannel.displayPhone,
+        contactChannelId: contactChannel.id
+    };
 }
 
 function getGeneratedActionLabel(action: GeneratedAction) {
@@ -180,6 +187,7 @@ function trackGeneratedAction(action: GeneratedAction, values: ContactFormValues
         context: values.subject,
         journey: "general",
         channel: action.channel,
+        contact_channel: action.contactChannelId,
         preferred_channel: values.preferredChannel,
         has_whatsapp: isValidWhatsApp(values.whatsapp),
         has_email: isValidEmail(values.email)
@@ -347,6 +355,7 @@ export function ContactForm() {
     const [values, setValues] = React.useState<ContactFormValues>(initialValues);
     const [errors, setErrors] = React.useState<ContactFormErrors>({});
     const [generatedAction, setGeneratedAction] = React.useState<GeneratedAction | null>(null);
+    const selectedContactChannel = resolveContactChannelForSubject(values.subject);
 
     function updateValue(name: keyof ContactFormValues, value: string | boolean) {
         setValues((current) => ({ ...current, [name]: value }));
@@ -425,7 +434,7 @@ export function ContactForm() {
                             value={values.whatsapp}
                             onChange={(event) => updateValue("whatsapp", event.target.value)}
                             errorMessage={errors.whatsapp}
-                            placeholder="(17) 99673-5427"
+                            placeholder="(17) 99999-9999"
                             autoComplete="tel"
                         />
                     </div>
@@ -468,7 +477,7 @@ export function ContactForm() {
                                 selected={values.preferredChannel === "whatsapp"}
                                 icon={MessageCircle}
                                 title="WhatsApp"
-                                description={`Abrir conversa com ${CONTACT_DISPLAY_PHONE}.`}
+                                description={`Abrir conversa com ${selectedContactChannel.displayPhone} (${selectedContactChannel.shortLabel}).`}
                                 onChange={(nextValue) => updateValue("preferredChannel", nextValue)}
                             />
                             <ChannelOption
@@ -476,10 +485,15 @@ export function ContactForm() {
                                 selected={values.preferredChannel === "email"}
                                 icon={Mail}
                                 title="E-mail"
-                                description={`Criar e-mail para ${CONTACT_EMAIL}.`}
+                                description={`Criar e-mail para ${selectedContactChannel.email}.`}
                                 onChange={(nextValue) => updateValue("preferredChannel", nextValue)}
                             />
                         </div>
+                        <p className="rounded-xl border border-cream-100/8 bg-navy-950/50 px-4 py-3 text-xs leading-6 text-cream-300">
+                            Destino pelo assunto: <strong className="font-semibold text-cream-100">{selectedContactChannel.label}</strong>
+                            {" - "}
+                            {values.preferredChannel === "whatsapp" ? selectedContactChannel.displayPhone : selectedContactChannel.email}
+                        </p>
                     </fieldset>
 
                     <div className="space-y-2">
@@ -511,6 +525,7 @@ export function ContactForm() {
                                 <CheckCircle2 className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
                                 <span>
                                     Abrimos a mensagem preenchida. Revise e envie no aplicativo externo para concluir o contato; o site nao envia automaticamente.
+                                    <span className="mt-1 block font-semibold">Destino: {generatedAction.displayDestination}</span>
                                 </span>
                             </span>
                             <a

@@ -6,7 +6,8 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsc src/lib/placarsoft.test.ts src/lib/contact.test.ts --outDir .tmp-tests --module commonjs --target es2022 --moduleResolution node --esModuleInterop --skipLibCheck --lib es2022,dom && node .tmp-tests/placarsoft.test.js && node .tmp-tests/contact.test.js && node -e \"require('node:fs').rmSync('.tmp-tests',{recursive:true,force:true})\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

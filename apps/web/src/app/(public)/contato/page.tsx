@@ -13,10 +13,11 @@ import {
     Newspaper,
     ShieldCheck,
     Trophy,
-    Users
+    Users,
+    Wrench
 } from "lucide-react";
 import {
-    CONTACT_DISPLAY_PHONE,
+    CONTACT_CHANNELS,
     CONTACT_EMAIL,
     CONTACT_INTENTS,
     type ContactAction,
@@ -48,23 +49,33 @@ type TrackingProps = {
     context?: string;
 };
 
-const heroWhatsAppHref = buildWhatsAppHref("Oi, Resenha! Vim pelo site e quero falar com o clube.");
+const teamContact = CONTACT_CHANNELS.team;
+const siteContact = CONTACT_CHANNELS.site;
+const heroWhatsAppHref = buildWhatsAppHref(
+    "Oi, Resenha! Vim pela pagina de contato e quero falar com o time. O assunto e: ",
+    "team"
+);
 const heroEmailHref = buildMailtoHref({
     subject: "Contato pelo site do Resenha RFC",
-    body: "Oi, Resenha!\n\nVim pelo site e quero falar com o clube sobre:\n\n"
+    body: "Oi, Resenha!\n\nVim pela pagina de contato e quero falar com o time sobre:\n\n",
+    channelId: "team"
 });
+const siteSupportWhatsAppHref = buildWhatsAppHref(
+    "Oi, Resenha! Vim pela pagina de contato e quero falar com o canal do site. O assunto e: ",
+    "site"
+);
 
 const directChannels: DirectChannel[] = [
     {
-        title: "WhatsApp oficial",
-        value: CONTACT_DISPLAY_PHONE,
-        description: "Para abrir conversa rapida sobre parceria, apoio, jogos, duvidas ou o melhor caminho de contato.",
+        title: "WhatsApp do time",
+        value: teamContact.displayPhone,
+        description: "Para apoio, jogos, imprensa, assuntos institucionais ou duvidas do clube.",
         ctaLabel: "Chamar no WhatsApp",
         href: heroWhatsAppHref,
         icon: MessageCircle,
         actionType: "whatsapp",
         journey: "general",
-        destination: CONTACT_DISPLAY_PHONE,
+        destination: teamContact.whatsappNumber,
         external: true
     },
     {
@@ -77,6 +88,18 @@ const directChannels: DirectChannel[] = [
         actionType: "email",
         journey: "institutional",
         destination: CONTACT_EMAIL
+    },
+    {
+        title: "Suporte do site",
+        value: siteContact.displayPhone,
+        description: "Para parcerias comerciais no site, erros, manutencao, acesso ou administracao do portal.",
+        ctaLabel: "Chamar canal do site",
+        href: siteSupportWhatsAppHref,
+        icon: Wrench,
+        actionType: "whatsapp",
+        journey: "site",
+        destination: siteContact.whatsappNumber,
+        external: true
     }
 ];
 
@@ -86,7 +109,8 @@ const intentIconByJourney: Record<ContactIntent["journey"], LucideIcon> = {
     sports: Trophy,
     editorial: Newspaper,
     institutional: Building2,
-    general: Users
+    general: Users,
+    site: Wrench
 };
 
 const journeyLabels: Record<ContactIntent["journey"], string> = {
@@ -95,7 +119,8 @@ const journeyLabels: Record<ContactIntent["journey"], string> = {
     sports: "Jogos",
     editorial: "Conteudo",
     institutional: "Institucional",
-    general: "Geral"
+    general: "Geral",
+    site: "Site"
 };
 
 const sponsorRoute = {
@@ -114,7 +139,7 @@ const SponsorRouteIcon = sponsorRoute.icon;
 export const metadata: Metadata = createPageMetadata({
     title: "Contato oficial",
     description:
-        `Fale com o Resenha RFC pelo WhatsApp ${CONTACT_DISPLAY_PHONE} ou e-mail ${CONTACT_EMAIL} para parcerias, apoio, patrocinio, amistosos e assuntos institucionais.`,
+        `Fale com o Resenha RFC pelo WhatsApp ${teamContact.displayPhone} ou e-mail ${CONTACT_EMAIL} para assuntos do time. Suporte do site: ${siteContact.displayPhone}.`,
     path: "/contato",
     keywords: [
         "contato Resenha RFC",
@@ -268,8 +293,8 @@ export default function ContatoPage() {
                             </h1>
                             <p className="mt-5 max-w-3xl text-base leading-8 text-cream-300 md:text-lg">
                                 Use esta pagina para conversar sobre parcerias, apoio ao clube, amistosos, imprensa,
-                                conteudo, assuntos institucionais ou duvidas gerais. WhatsApp e e-mail sao os canais
-                                oficiais para comecar.
+                                conteudo, assuntos institucionais ou duvidas gerais. Assuntos do time vao para o
+                                WhatsApp do clube; aparecer no site, suporte e manutencao do portal vao para o contato do site.
                             </p>
 
                             <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-2">
@@ -278,18 +303,18 @@ export default function ContatoPage() {
                                         href={heroWhatsAppHref}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        aria-label={`Chamar o Resenha no WhatsApp ${CONTACT_DISPLAY_PHONE}`}
+                                        aria-label={`Chamar o Resenha no WhatsApp ${teamContact.displayPhone}`}
                                         {...trackingProps({
-                                            label: "WhatsApp oficial",
+                                            label: "WhatsApp do time",
                                             journey: "general",
                                             source: "contact_page_hero",
-                                            destination: CONTACT_DISPLAY_PHONE,
+                                            destination: teamContact.whatsappNumber,
                                             context: "primary_whatsapp"
                                         })}
                                     >
                                         <span className="flex min-w-0 flex-col text-left leading-tight">
-                                            <span className="text-xs text-cream-100/75">WhatsApp</span>
-                                            <span>{CONTACT_DISPLAY_PHONE}</span>
+                                            <span className="text-xs text-cream-100/75">WhatsApp do time</span>
+                                            <span>{teamContact.displayPhone}</span>
                                         </span>
                                         <MessageCircle className="ml-3 h-5 w-5 shrink-0" aria-hidden="true" />
                                     </a>
@@ -340,8 +365,12 @@ export default function ContatoPage() {
                             </div>
                             <dl className="mt-6 grid gap-4 text-sm">
                                 <div className="border-t border-cream-100/8 pt-4">
-                                    <dt className="text-cream-300">Telefone e WhatsApp</dt>
-                                    <dd className="mt-1 font-semibold text-cream-100">{CONTACT_DISPLAY_PHONE}</dd>
+                                    <dt className="text-cream-300">WhatsApp do time</dt>
+                                    <dd className="mt-1 font-semibold text-cream-100">{teamContact.displayPhone}</dd>
+                                </div>
+                                <div className="border-t border-cream-100/8 pt-4">
+                                    <dt className="text-cream-300">Suporte do site</dt>
+                                    <dd className="mt-1 font-semibold text-cream-100">{siteContact.displayPhone}</dd>
                                 </div>
                                 <div className="border-t border-cream-100/8 pt-4">
                                     <dt className="text-cream-300">E-mail</dt>
@@ -361,12 +390,12 @@ export default function ContatoPage() {
                             Comece pelo contato que combina com a sua mensagem.
                         </h2>
                         <p className="mt-3 text-base leading-7 text-cream-300">
-                            WhatsApp resolve conversas rapidas. E-mail ajuda quando o assunto pede contexto, documentos ou
-                            encaminhamento institucional.
+                            O WhatsApp do time resolve conversas do clube. Parcerias para aparecer no site e problemas
+                            tecnicos ficam no contato do site, e o e-mail ajuda quando o assunto pede contexto ou documentos.
                         </p>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-3">
                         {directChannels.map((channel) => {
                             const Icon = channel.icon;
 

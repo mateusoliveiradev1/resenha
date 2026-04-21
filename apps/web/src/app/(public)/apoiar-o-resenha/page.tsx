@@ -16,12 +16,48 @@ import {
 } from "lucide-react";
 import { FaqBlock, type FaqItem } from "@/components/monetization/FaqBlock";
 import { LeadForm } from "@/components/monetization/LeadForm";
+import { CONTACT_CHANNELS, buildWhatsAppHref } from "@/lib/contact";
 import { createPageMetadata } from "@/lib/seo";
+
+const supportContact = CONTACT_CHANNELS.team;
+const supportWhatsappMessages = {
+    hero: "Oi, Resenha! Vim pela pagina Apoiar o Resenha e quero conversar sobre apoio ao time.",
+    punctual: "Oi, Resenha! Quero conversar sobre um apoio pontual para o time. Posso explicar minha ideia?",
+    recurring: "Oi, Resenha! Quero conversar sobre apoio recorrente para ajudar a rotina do time.",
+    sponsorship: "Oi, Resenha! Quero conversar sobre patrocinio para o time. Minha empresa/projeto e: ",
+    productService: "Oi, Resenha! Quero apoiar o time com produto ou servico. Posso explicar o que consigo oferecer?",
+    talkFirst: "Oi, Resenha! Quero conversar antes para entender qual apoio faz mais sentido para o time.",
+    afterTypes: "Oi, Resenha! Vi as formas de apoio e quero entender qual delas combina melhor com o momento do time.",
+    contactIntro: "Oi, Resenha! Quero falar direto sobre apoio ou patrocinio para o time.",
+    afterFaq: "Oi, Resenha! Ainda tenho uma duvida antes de apoiar o time.",
+    finalCta: "Oi, Resenha! Quero conversar sobre apoio ao time e comecar por uma conversa simples."
+} as const;
+
+type SupportWhatsappKey = keyof typeof supportWhatsappMessages;
+
+function buildSupportWhatsappHref(message: string) {
+    return buildWhatsAppHref(message, "team");
+}
+
+const supportWhatsappHrefs: Record<SupportWhatsappKey, string> = {
+    hero: buildSupportWhatsappHref(supportWhatsappMessages.hero),
+    punctual: buildSupportWhatsappHref(supportWhatsappMessages.punctual),
+    recurring: buildSupportWhatsappHref(supportWhatsappMessages.recurring),
+    sponsorship: buildSupportWhatsappHref(supportWhatsappMessages.sponsorship),
+    productService: buildSupportWhatsappHref(supportWhatsappMessages.productService),
+    talkFirst: buildSupportWhatsappHref(supportWhatsappMessages.talkFirst),
+    afterTypes: buildSupportWhatsappHref(supportWhatsappMessages.afterTypes),
+    contactIntro: buildSupportWhatsappHref(supportWhatsappMessages.contactIntro),
+    afterFaq: buildSupportWhatsappHref(supportWhatsappMessages.afterFaq),
+    finalCta: buildSupportWhatsappHref(supportWhatsappMessages.finalCta)
+};
 
 type SupportItem = {
     title: string;
     description: string;
     icon: LucideIcon;
+    whatsappKey?: SupportWhatsappKey;
+    ctaLabel?: string;
 };
 
 const supportValueBlocks: SupportItem[] = [
@@ -51,27 +87,37 @@ const supportTypes: SupportItem[] = [
     {
         title: "Apoio pontual",
         description: "Ajuda especifica para uma rodada, material, inscricao ou necessidade do momento.",
-        icon: Sparkles
+        icon: Sparkles,
+        whatsappKey: "punctual",
+        ctaLabel: "Falar sobre apoio pontual"
     },
     {
         title: "Apoio recorrente",
         description: "Combinado simples para sustentar parte da rotina do clube durante a temporada.",
-        icon: CalendarDays
+        icon: CalendarDays,
+        whatsappKey: "recurring",
+        ctaLabel: "Falar sobre apoio recorrente"
     },
     {
         title: "Patrocinio institucional",
         description: "Marca ou empresa caminhando junto do projeto esportivo do Resenha.",
-        icon: HeartHandshake
+        icon: HeartHandshake,
+        whatsappKey: "sponsorship",
+        ctaLabel: "Falar sobre patrocinio"
     },
     {
         title: "Produto ou servico",
         description: "Materiais, transporte, alimentacao, impressos, fotos, equipamentos ou estrutura.",
-        icon: ShieldCheck
+        icon: ShieldCheck,
+        whatsappKey: "productService",
+        ctaLabel: "Falar sobre produto/servico"
     },
     {
         title: "Quero conversar antes",
         description: "Para quem quer entender com calma qual formato faz sentido para o clube e para o apoiador.",
-        icon: MessageCircle
+        icon: MessageCircle,
+        whatsappKey: "talkFirst",
+        ctaLabel: "Conversar antes"
     }
 ];
 
@@ -162,17 +208,19 @@ export default function ApoiarOResenhaPage() {
 
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                             <Button asChild size="lg">
-                                <Link
-                                    href="#fale-sobre-apoio"
+                                <a
+                                    href={supportWhatsappHrefs.hero}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     data-monetization-event="cta_click"
                                     data-label="Quero apoiar o Resenha"
                                     data-journey="support"
                                     data-source="support_page_hero"
-                                    data-destination="#fale-sobre-apoio"
+                                    data-destination={supportContact.whatsappNumber}
                                 >
                                     Quero apoiar o Resenha
                                     <HeartHandshake className="ml-2 h-4 w-4" />
-                                </Link>
+                                </a>
                             </Button>
                             <Button asChild variant="outline" size="lg">
                                 <Link
@@ -264,17 +312,56 @@ export default function ApoiarOResenhaPage() {
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                         {supportTypes.map((item) => {
                             const Icon = item.icon;
+                            const whatsappKey = item.whatsappKey;
 
                             return (
                                 <Card key={item.title} className="border-navy-800 bg-navy-900/85">
-                                    <CardContent className="p-5">
+                                    <CardContent className="flex h-full flex-col p-5">
                                         <Icon className="h-5 w-5 text-blue-300" aria-hidden="true" />
                                         <h3 className="mt-4 font-display text-lg font-bold text-cream-100">{item.title}</h3>
-                                        <p className="mt-3 text-sm leading-7 text-cream-300">{item.description}</p>
+                                        <p className="mt-3 flex-1 text-sm leading-7 text-cream-300">{item.description}</p>
+                                        {whatsappKey ? (
+                                            <Button asChild variant="outline" className="mt-5 h-auto min-h-11 w-full whitespace-normal rounded-full px-4 py-2 text-sm">
+                                                <a
+                                                    href={supportWhatsappHrefs[whatsappKey]}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    data-monetization-event="cta_click"
+                                                    data-label={item.ctaLabel ?? item.title}
+                                                    data-journey="support"
+                                                    data-source="support_page_support_types"
+                                                    data-destination={supportContact.whatsappNumber}
+                                                    data-context={whatsappKey}
+                                                >
+                                                    {item.ctaLabel ?? "Conversar sobre apoio"}
+                                                    <MessageCircle className="ml-2 h-4 w-4 shrink-0" aria-hidden="true" />
+                                                </a>
+                                            </Button>
+                                        ) : null}
                                     </CardContent>
                                 </Card>
                             );
                         })}
+                    </div>
+                    <div className="mt-6 flex flex-col gap-3 rounded-[1.5rem] border border-cream-100/8 bg-navy-900/65 p-5 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm leading-7 text-cream-300">
+                            Ficou na duvida entre apoio, produto, servico ou patrocinio? Chame o time e comece pela conversa.
+                        </p>
+                        <Button asChild size="lg" className="h-auto min-h-11 w-full whitespace-normal rounded-full px-5 py-2 sm:w-auto">
+                            <a
+                                href={supportWhatsappHrefs.afterTypes}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                data-monetization-event="cta_click"
+                                data-label="Entender melhor as formas de apoio"
+                                data-journey="support"
+                                data-source="support_page_after_types"
+                                data-destination={supportContact.whatsappNumber}
+                            >
+                                Entender melhor
+                                <MessageCircle className="ml-2 h-4 w-4 shrink-0" aria-hidden="true" />
+                            </a>
+                        </Button>
                     </div>
                 </section>
 
@@ -347,6 +434,23 @@ export default function ApoiarOResenhaPage() {
                                     </div>
                                 ))}
                             </div>
+                            <div className="mt-6">
+                                <Button asChild size="lg" className="h-auto min-h-12 w-full whitespace-normal rounded-full px-5 py-3 sm:w-auto">
+                                    <a
+                                        href={supportWhatsappHrefs.contactIntro}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        data-monetization-event="cta_click"
+                                        data-label="Falar direto sobre apoio"
+                                        data-journey="support"
+                                        data-source="support_page_contact_intro"
+                                        data-destination={supportContact.whatsappNumber}
+                                    >
+                                        Falar direto no WhatsApp
+                                        <MessageCircle className="ml-2 h-4 w-4 shrink-0" aria-hidden="true" />
+                                    </a>
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -362,6 +466,27 @@ export default function ApoiarOResenhaPage() {
                     className="mt-12"
                 />
 
+                <section className="mt-6 flex flex-col gap-3 rounded-[1.5rem] border border-cream-100/8 bg-navy-900/65 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm leading-7 text-cream-300">
+                        Ainda ficou alguma duvida sobre apoio ao time? Chame o Resenha no WhatsApp do clube.
+                    </p>
+                    <Button asChild size="lg" className="h-auto min-h-11 w-full whitespace-normal rounded-full px-5 py-2 sm:w-auto">
+                        <a
+                            href={supportWhatsappHrefs.afterFaq}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-monetization-event="cta_click"
+                            data-label="Tirar duvida sobre apoio"
+                            data-journey="support"
+                            data-source="support_page_after_faq"
+                            data-destination={supportContact.whatsappNumber}
+                        >
+                            Tirar duvida no WhatsApp
+                            <MessageCircle className="ml-2 h-4 w-4 shrink-0" aria-hidden="true" />
+                        </a>
+                    </Button>
+                </section>
+
                 <section className="mt-12 overflow-hidden rounded-[2rem] border border-gold-400/20 bg-[linear-gradient(135deg,rgba(212,168,67,0.14),rgba(10,22,40,0.96)_42%,rgba(6,14,26,0.98))] px-6 py-8 sm:px-8 lg:px-10" aria-labelledby="support-final-cta-heading">
                     <div className="max-w-3xl">
                         <Badge variant="gold" className="mb-4">
@@ -375,17 +500,19 @@ export default function ApoiarOResenhaPage() {
                         </p>
                         <div className="mt-7">
                             <Button asChild size="lg" className="w-full rounded-full sm:w-auto">
-                                <Link
-                                    href="#fale-sobre-apoio"
+                                <a
+                                    href={supportWhatsappHrefs.finalCta}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     data-monetization-event="cta_click"
                                     data-label="Conversar sobre apoio"
                                     data-journey="support"
                                     data-source="support_page_final_cta"
-                                    data-destination="#fale-sobre-apoio"
+                                    data-destination={supportContact.whatsappNumber}
                                 >
                                     Conversar sobre apoio
                                     <HeartHandshake className="ml-2 h-4 w-4" aria-hidden="true" />
-                                </Link>
+                                </a>
                             </Button>
                         </div>
                     </div>
