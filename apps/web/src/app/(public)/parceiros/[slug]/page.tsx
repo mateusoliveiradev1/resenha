@@ -6,10 +6,18 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@resenha/db";
 import { premiumPartnerPages, sponsors } from "@resenha/db/schema";
 import { Badge, Button, Card, CardContent, Container, shouldBypassNextImageOptimization } from "@resenha/ui";
+import type { SponsorRelationshipType } from "@resenha/validators";
 import { ArrowLeft, ArrowRight, ExternalLink, Handshake, Star } from "lucide-react";
 import { DEFAULT_OG_IMAGE, createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+const relationshipLabels: Record<SponsorRelationshipType, string> = {
+    CLUB_SPONSOR: "Apoio ao clube",
+    SITE_PARTNER: "Parceiro do site",
+    SUPPORTER: "Apoiador",
+    BOTH: "Clube e site"
+};
 
 async function getPremiumPartnerPage(slug: string) {
     let page: typeof premiumPartnerPages.$inferSelect | undefined;
@@ -26,11 +34,17 @@ async function getPremiumPartnerPage(slug: string) {
         return null;
     }
 
-    const sponsor = page.sponsorId
-        ? await db.query.sponsors.findFirst({
-            where: eq(sponsors.id, page.sponsorId)
-        })
-        : null;
+    let sponsor: typeof sponsors.$inferSelect | undefined | null = null;
+
+    if (page.sponsorId) {
+        try {
+            sponsor = await db.query.sponsors.findFirst({
+                where: eq(sponsors.id, page.sponsorId)
+            });
+        } catch {
+            sponsor = null;
+        }
+    }
 
     return { page, sponsor };
 }
@@ -103,7 +117,7 @@ export default async function PremiumPartnerPage({ params }: { params: Promise<{
                                 </Badge>
                                 {sponsor ? (
                                     <Badge variant="accent">
-                                        {sponsor.relationshipType === "SITE_PARTNER" ? "Parceiro do site" : "Marca parceira"}
+                                        {relationshipLabels[sponsor.relationshipType]}
                                     </Badge>
                                 ) : null}
                             </div>

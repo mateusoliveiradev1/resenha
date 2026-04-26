@@ -1,110 +1,83 @@
 import { NextResponse } from "next/server";
 import { db } from "@resenha/db";
 import { monetizationLeads } from "@resenha/db/schema";
+import {
+    CreateMonetizationLeadSchema,
+    PublicLeadSubmissionSchema,
+    type CreateMonetizationLeadInput
+} from "@resenha/validators";
+import type { ZodIssue } from "zod";
 
-type LeadJourney = "support" | "commercial";
+type LeadValidationErrors = Record<string, string>;
 
-type LeadRequestBody = {
-    variant?: LeadJourney;
-    source?: string;
-    values?: Record<string, unknown>;
-};
+function formatLeadValidationErrors(issues: ZodIssue[]) {
+    return issues.reduce<LeadValidationErrors>((errors, issue) => {
+        const path = issue.path[0] === "values" && typeof issue.path[1] === "string"
+            ? issue.path[1]
+            : String(issue.path[0] ?? "form");
 
-function getString(values: Record<string, unknown>, key: string) {
-    const value = values[key];
-
-    return typeof value === "string" ? value.trim() : "";
-}
-
-function getDigits(value: string) {
-    return value.replace(/\D/g, "");
-}
-
-function getOptionalString(values: Record<string, unknown>, key: string) {
-    const value = getString(values, key);
-
-    return value ? value : null;
-}
-
-function validateLead(body: LeadRequestBody) {
-    const values = body.values ?? {};
-    const errors: Record<string, string> = {};
-
-    if (body.variant !== "support" && body.variant !== "commercial") {
-        errors.variant = "Invalid lead journey.";
-    }
-
-    if (getString(values, "name").length < 2) {
-        errors.name = "Name is required.";
-    }
-
-    if (getDigits(getString(values, "whatsapp")).length < 10) {
-        errors.whatsapp = "A valid WhatsApp with area code is required.";
-    }
-
-    if (body.variant === "support") {
-        if (!getString(values, "supportType")) {
-            errors.supportType = "Support type is required.";
+        if (!errors[path]) {
+            errors[path] = issue.message;
         }
 
-        if (getString(values, "supportDescription").length < 8) {
-            errors.supportDescription = "Support description is required.";
-        }
-    }
-
-    if (body.variant === "commercial") {
-        if (getString(values, "company").length < 2) {
-            errors.company = "Company is required.";
-        }
-
-        if (!getString(values, "advertisingOption")) {
-            errors.advertisingOption = "Advertising option is required.";
-        }
-    }
-
-    if (values.contactConsent !== true) {
-        errors.contactConsent = "Contact consent is required.";
-    }
-
-    return errors;
+        return errors;
+    }, {});
 }
 
 export async function POST(request: Request) {
-    let body: LeadRequestBody;
+    let body: unknown;
 
     try {
-        body = (await request.json()) as LeadRequestBody;
+        body = await request.json();
     } catch {
         return NextResponse.json({ ok: false, error: "Invalid JSON body." }, { status: 400 });
     }
 
-    const errors = validateLead(body);
+    const parsedSubmission = PublicLeadSubmissionSchema.safeParse(body);
 
-    if (Object.keys(errors).length > 0) {
-        return NextResponse.json({ ok: false, errors }, { status: 422 });
+    if (!parsedSubmission.success) {
+        return NextResponse.json(
+            { ok: false, errors: formatLeadValidationErrors(parsedSubmission.error.issues) },
+            { status: 422 }
+        );
     }
 
-    const values = body.values ?? {};
-    const journey: LeadJourney = body.variant === "commercial" ? "commercial" : "support";
-    const source = getString({ source: body.source }, "source") || "lead_form";
+    const { variant, source, values } = parsedSubmission.data;
+    const leadInput: CreateMonetizationLeadInput = CreateMonetizationLeadSchema.parse({
+        journey: variant,
+        source,
+        status: "NEW",
+        name: values.name,
+        company: values.company,
+        whatsapp: values.whatsapp,
+        email: values.email,
+        city: values.city,
+        supportType: values.supportType,
+        supportDescription: values.supportDescription,
+        advertisingOption: values.advertisingOption,
+        businessType: values.businessType,
+        instagramOrSite: values.instagramOrSite,
+        message: values.message,
+        rawPayload: values
+    });
     const now = new Date();
 
     const [lead] = await db.insert(monetizationLeads).values({
-        journey,
-        source,
-        status: "NEW",
-        name: getString(values, "name"),
-        company: getOptionalString(values, "company"),
-        whatsapp: getString(values, "whatsapp"),
-        email: getOptionalString(values, "email"),
-        city: getOptionalString(values, "city"),
-        supportType: getOptionalString(values, "supportType"),
-        supportDescription: getOptionalString(values, "supportDescription"),
-        advertisingOption: getOptionalString(values, "advertisingOption"),
-        businessType: getOptionalString(values, "businessType"),
-        instagramOrSite: getOptionalString(values, "instagramOrSite"),
-        message: getOptionalString(values, "message"),
-        rawPayload: values,
+        journey: leadInput.journey,
+        source: leadInput.source,
+        status: leadInput.status,
+        name: leadInput.name,
+        company: leadInput.company,
+        whatsapp: leadInput.whatsapp,
+        email: leadInput.email,
+        city: leadInput.city,
+        supportType: leadInput.supportType,
+        supportDescription: leadInput.supportDescription,
+        advertisingOption: leadInput.advertisingOption,
+        businessType: leadInput.businessType,
+        instagramOrSite: leadInput.instagramOrSite,
+        message: leadInput.message,
+        rawPayload: leadInput.rawPayload,
         createdAt: now,
         updatedAt: now
     }).returning({

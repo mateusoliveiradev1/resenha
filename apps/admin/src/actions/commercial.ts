@@ -25,12 +25,24 @@ import {
 } from "@resenha/validators";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { ZodError } from "zod";
+
+export type CommercialActionState = {
+    status: "idle" | "success" | "error";
+    message: string;
+    fieldErrors?: Record<string, string>;
+    values?: Record<string, string>;
+};
 
 const getString = (formData: FormData, key: string) => {
     const value = formData.get(key);
 
     return typeof value === "string" ? value : "";
 };
+
+const getBoolean = (formData: FormData, key: string) => (
+    formData.getAll(key).some((value) => value === "on")
+);
 
 const normalizeId = (value: string) => {
     const trimmed = value.trim();
@@ -46,12 +58,71 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
     return fallbackMessage;
 };
 
+const getFormValues = (formData: FormData) => {
+    const values: Record<string, string> = {};
+
+    formData.forEach((value, key) => {
+        if (typeof value === "string") {
+            values[key] = value;
+        }
+    });
+
+    return values;
+};
+
+const getFieldErrors = (error: ZodError) => {
+    const fieldErrors: Record<string, string> = {};
+
+    Object.entries(error.flatten().fieldErrors).forEach(([field, messages]) => {
+        const message = messages?.[0];
+
+        if (message) {
+            fieldErrors[field] = message;
+        }
+    });
+
+    return fieldErrors;
+};
+
+const createSuccessState = (message: string): CommercialActionState => ({
+    status: "success",
+    message
+});
+
+const createErrorState = (
+    error: unknown,
+    fallbackMessage: string,
+    formData: FormData
+): CommercialActionState => {
+    if (error instanceof ZodError) {
+        return {
+            status: "error",
+            message: error.issues[0]?.message ?? fallbackMessage,
+            fieldErrors: getFieldErrors(error),
+            values: getFormValues(formData)
+        };
+    }
+
+    return {
+        status: "error",
+        message: getErrorMessage(error, fallbackMessage),
+        values: getFormValues(formData)
+    };
+};
+
 function revalidateCommercialSurfaces() {
     revalidatePath("/comercial");
+    revalidatePath("/leads");
     revalidatePath("/seja-parceiro");
     revalidatePath("/patrocinadores");
     revalidatePath("/parceiros");
     revalidatePath("/blog");
+}
+
+function revalidatePremiumPartnerPage(slug: string | null | undefined) {
+    if (slug) {
+        revalidatePath(`/parceiros/${slug}`);
+    }
 }
 
 function readCommercialOffer(formData: FormData): SaveCommercialOfferContentInput {
@@ -67,7 +138,7 @@ function readCommercialOffer(formData: FormData): SaveCommercialOfferContentInpu
         note: getString(formData, "note"),
         ctaLabel: getString(formData, "ctaLabel"),
         displayOrder: getString(formData, "displayOrder"),
-        isActive: formData.get("isActive") === "on",
+        isActive: getBoolean(formData, "isActive"),
     });
 }
 
@@ -81,7 +152,7 @@ function readEditorialOffering(formData: FormData): SaveEditorialOfferingInput {
         href: getString(formData, "href"),
         linkLabel: getString(formData, "linkLabel") || "Conhecer parceiro",
         displayOrder: getString(formData, "displayOrder"),
-        isActive: formData.get("isActive") === "on",
+        isActive: getBoolean(formData, "isActive"),
     });
 }
 
@@ -94,7 +165,7 @@ function readLeadFollowUpAutomation(formData: FormData): SaveLeadFollowUpAutomat
         triggerStatus: getString(formData, "triggerStatus") || "NEW",
         destinationHint: getString(formData, "destinationHint"),
         messageTemplate: getString(formData, "messageTemplate"),
-        isActive: formData.get("isActive") === "on",
+        isActive: getBoolean(formData, "isActive"),
     });
 }
 
@@ -114,7 +185,7 @@ function readCommercialCampaignPackage(formData: FormData): SaveCommercialCampai
         startsAt: getString(formData, "startsAt"),
         endsAt: getString(formData, "endsAt"),
         displayOrder: getString(formData, "displayOrder"),
-        isActive: formData.get("isActive") === "on",
+        isActive: getBoolean(formData, "isActive"),
     });
 }
 
@@ -131,7 +202,7 @@ function readPremiumPartnerPage(formData: FormData): SavePremiumPartnerPageInput
         ctaLabel: getString(formData, "ctaLabel") || "Conhecer parceiro",
         ctaHref: getString(formData, "ctaHref"),
         displayOrder: getString(formData, "displayOrder"),
-        isActive: formData.get("isActive") === "on",
+        isActive: getBoolean(formData, "isActive"),
         publishedAt: getString(formData, "publishedAt"),
     });
 }
@@ -152,11 +223,14 @@ function readCopyCtaExperiment(formData: FormData): SaveCopyCtaExperimentInput {
         startsAt: getString(formData, "startsAt"),
         endsAt: getString(formData, "endsAt"),
         notes: getString(formData, "notes"),
-        isActive: formData.get("isActive") === "on",
+        isActive: getBoolean(formData, "isActive"),
     });
 }
 
-export async function saveCommercialOfferContent(formData: FormData) {
+export async function saveCommercialOfferContent(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const parsed = readCommercialOffer(formData);
         const payload = {
@@ -181,12 +255,16 @@ export async function saveCommercialOfferContent(formData: FormData) {
         }
 
         revalidateCommercialSurfaces();
+        return createSuccessState("Formato comercial salvo. As superficies comerciais foram revalidadas.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel salvar o formato comercial."));
+        return createErrorState(error, "Nao foi possivel salvar o formato comercial.", formData);
     }
 }
 
-export async function deleteCommercialOfferContent(formData: FormData) {
+export async function deleteCommercialOfferContent(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const id = normalizeId(getString(formData, "id"));
 
@@ -196,12 +274,16 @@ export async function deleteCommercialOfferContent(formData: FormData) {
 
         await db.delete(commercialOfferContents).where(eq(commercialOfferContents.id, id));
         revalidateCommercialSurfaces();
+        return createSuccessState("Formato comercial removido. A pagina publica usara outro registro ativo ou fallback.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel remover o formato comercial."));
+        return createErrorState(error, "Nao foi possivel remover o formato comercial.", formData);
     }
 }
 
-export async function saveEditorialOffering(formData: FormData) {
+export async function saveEditorialOffering(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const parsed = readEditorialOffering(formData);
         const payload = {
@@ -223,12 +305,16 @@ export async function saveEditorialOffering(formData: FormData) {
         }
 
         revalidateCommercialSurfaces();
+        return createSuccessState("Oferecimento editorial salvo e disponivel para uso em posts.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel salvar o oferecimento editorial."));
+        return createErrorState(error, "Nao foi possivel salvar o oferecimento editorial.", formData);
     }
 }
 
-export async function deleteEditorialOffering(formData: FormData) {
+export async function deleteEditorialOffering(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const id = normalizeId(getString(formData, "id"));
 
@@ -238,12 +324,16 @@ export async function deleteEditorialOffering(formData: FormData) {
 
         await db.delete(editorialOfferings).where(eq(editorialOfferings.id, id));
         revalidateCommercialSurfaces();
+        return createSuccessState("Oferecimento editorial removido e paginas editoriais revalidadas.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel remover o oferecimento editorial."));
+        return createErrorState(error, "Nao foi possivel remover o oferecimento editorial.", formData);
     }
 }
 
-export async function saveLeadFollowUpAutomation(formData: FormData) {
+export async function saveLeadFollowUpAutomation(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const parsed = readLeadFollowUpAutomation(formData);
         const payload = {
@@ -264,12 +354,16 @@ export async function saveLeadFollowUpAutomation(formData: FormData) {
         }
 
         revalidateCommercialSurfaces();
+        return createSuccessState("Automacao salva. A selecao de template dos leads foi revalidada.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel salvar a automacao de follow-up."));
+        return createErrorState(error, "Nao foi possivel salvar a automacao de follow-up.", formData);
     }
 }
 
-export async function deleteLeadFollowUpAutomation(formData: FormData) {
+export async function deleteLeadFollowUpAutomation(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const id = normalizeId(getString(formData, "id"));
 
@@ -279,12 +373,16 @@ export async function deleteLeadFollowUpAutomation(formData: FormData) {
 
         await db.delete(leadFollowUpAutomations).where(eq(leadFollowUpAutomations.id, id));
         revalidateCommercialSurfaces();
+        return createSuccessState("Automacao removida. O modulo de leads voltara ao proximo template valido ou fallback.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel remover a automacao de follow-up."));
+        return createErrorState(error, "Nao foi possivel remover a automacao de follow-up.", formData);
     }
 }
 
-export async function saveCommercialCampaignPackage(formData: FormData) {
+export async function saveCommercialCampaignPackage(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const parsed = readCommercialCampaignPackage(formData);
         const payload = {
@@ -312,12 +410,16 @@ export async function saveCommercialCampaignPackage(formData: FormData) {
         }
 
         revalidateCommercialSurfaces();
+        return createSuccessState("Pacote comercial salvo. Placements e superficies relacionadas foram revalidados.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel salvar o pacote comercial."));
+        return createErrorState(error, "Nao foi possivel salvar o pacote comercial.", formData);
     }
 }
 
-export async function deleteCommercialCampaignPackage(formData: FormData) {
+export async function deleteCommercialCampaignPackage(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const id = normalizeId(getString(formData, "id"));
 
@@ -327,14 +429,23 @@ export async function deleteCommercialCampaignPackage(formData: FormData) {
 
         await db.delete(commercialCampaignPackages).where(eq(commercialCampaignPackages.id, id));
         revalidateCommercialSurfaces();
+        return createSuccessState("Pacote comercial removido e dashboard revalidado.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel remover o pacote comercial."));
+        return createErrorState(error, "Nao foi possivel remover o pacote comercial.", formData);
     }
 }
 
-export async function savePremiumPartnerPage(formData: FormData) {
+export async function savePremiumPartnerPage(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const parsed = readPremiumPartnerPage(formData);
+        const previousPage = parsed.id
+            ? await db.query.premiumPartnerPages.findFirst({
+                where: eq(premiumPartnerPages.id, parsed.id)
+            })
+            : null;
         const payload = {
             slug: parsed.slug,
             sponsorId: parsed.sponsorId,
@@ -358,12 +469,20 @@ export async function savePremiumPartnerPage(formData: FormData) {
         }
 
         revalidateCommercialSurfaces();
+        revalidatePremiumPartnerPage(previousPage?.slug);
+        revalidatePremiumPartnerPage(parsed.slug);
+        return createSuccessState(parsed.isActive
+            ? "Pagina premium salva e publicada para o slug informado."
+            : "Pagina premium salva como inativa. O slug publico retorna nao encontrado.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel salvar a pagina premium do parceiro."));
+        return createErrorState(error, "Nao foi possivel salvar a pagina premium do parceiro.", formData);
     }
 }
 
-export async function deletePremiumPartnerPage(formData: FormData) {
+export async function deletePremiumPartnerPage(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const id = normalizeId(getString(formData, "id"));
 
@@ -371,14 +490,23 @@ export async function deletePremiumPartnerPage(formData: FormData) {
             throw new Error("Pagina premium nao encontrada.");
         }
 
-        await db.delete(premiumPartnerPages).where(eq(premiumPartnerPages.id, id));
+        const [deletedPage] = await db
+            .delete(premiumPartnerPages)
+            .where(eq(premiumPartnerPages.id, id))
+            .returning({ slug: premiumPartnerPages.slug });
+
         revalidateCommercialSurfaces();
+        revalidatePremiumPartnerPage(deletedPage?.slug);
+        return createSuccessState("Pagina premium removida. O slug publico foi revalidado.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel remover a pagina premium do parceiro."));
+        return createErrorState(error, "Nao foi possivel remover a pagina premium do parceiro.", formData);
     }
 }
 
-export async function saveCopyCtaExperiment(formData: FormData) {
+export async function saveCopyCtaExperiment(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const parsed = readCopyCtaExperiment(formData);
         const payload = {
@@ -406,12 +534,16 @@ export async function saveCopyCtaExperiment(formData: FormData) {
         }
 
         revalidateCommercialSurfaces();
+        return createSuccessState("Experimento salvo. A hero comercial usara apenas variantes ativas dentro da janela.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel salvar o experimento de copy e CTA."));
+        return createErrorState(error, "Nao foi possivel salvar o experimento de copy e CTA.", formData);
     }
 }
 
-export async function deleteCopyCtaExperiment(formData: FormData) {
+export async function deleteCopyCtaExperiment(
+    _previousState: CommercialActionState,
+    formData: FormData
+): Promise<CommercialActionState> {
     try {
         const id = normalizeId(getString(formData, "id"));
 
@@ -421,7 +553,8 @@ export async function deleteCopyCtaExperiment(formData: FormData) {
 
         await db.delete(copyCtaExperiments).where(eq(copyCtaExperiments.id, id));
         revalidateCommercialSurfaces();
+        return createSuccessState("Experimento removido. A copy publica voltara para o proximo conteudo valido.");
     } catch (error: unknown) {
-        throw new Error(getErrorMessage(error, "Nao foi possivel remover o experimento de copy e CTA."));
+        return createErrorState(error, "Nao foi possivel remover o experimento de copy e CTA.", formData);
     }
 }

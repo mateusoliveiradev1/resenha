@@ -390,7 +390,6 @@ export function LeadForm({ variant, source = "lead_form", className, onSubmitLea
                     className="mt-6 space-y-5"
                     noValidate
                     onSubmit={handleSubmit}
-                    data-monetization-event="lead_form"
                     data-journey={variant}
                     data-source={source}
                 >

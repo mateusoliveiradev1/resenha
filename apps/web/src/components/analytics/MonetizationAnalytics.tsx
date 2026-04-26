@@ -1,36 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { trackMonetizationEvent, type MonetizationEventName } from "@/lib/analytics";
-
-const eventNameMap: Record<string, MonetizationEventName> = {
-    cta_click: "monetization_cta_click",
-    offer_cta_click: "plan_cta_click",
-    partner_logo_click: "partner_logo_click",
-    faq_interaction: "faq_expand"
-};
-
-function getElementLabel(element: HTMLElement) {
-    return element.dataset.label || element.getAttribute("aria-label") || element.textContent?.replace(/\s+/g, " ").trim() || undefined;
-}
-
-function getEventPayload(element: HTMLElement) {
-    return {
-        label: getElementLabel(element),
-        source: element.dataset.source,
-        destination: element.dataset.destination,
-        context: element.dataset.context,
-        journey: element.dataset.journey,
-        partner_name: element.dataset.partnerName,
-        url: element.dataset.destination,
-        plan_name: element.dataset.planName || element.dataset.offerName,
-        offer_name: element.dataset.offerName,
-        experiment_key: element.dataset.experimentKey,
-        experiment_variant: element.dataset.experimentVariant,
-        page: element.dataset.page,
-        question: element.dataset.question
-    };
-}
+import { trackMonetizationEvent } from "@/lib/analytics";
+import { buildMonetizationEventPayload, normalizeMonetizationEventName } from "@/lib/monetizationEvents";
 
 export function MonetizationAnalytics() {
     React.useEffect(() => {
@@ -47,23 +19,34 @@ export function MonetizationAnalytics() {
                 return;
             }
 
-            const rawEventName = element.dataset.monetizationEvent;
-            const eventName = rawEventName ? eventNameMap[rawEventName] : undefined;
+            const eventName = normalizeMonetizationEventName(element.dataset.monetizationEvent);
 
             if (!eventName) {
                 return;
             }
 
             if (eventName === "faq_expand") {
+                if (!(element instanceof HTMLDetailsElement)) {
+                    return;
+                }
+
+                const summary = target.closest("summary");
+
+                if (!summary || summary.parentElement !== element) {
+                    return;
+                }
+
+                const wasOpen = element.open;
+
                 window.requestAnimationFrame(() => {
-                    if (element instanceof HTMLDetailsElement && element.open) {
-                        trackMonetizationEvent(eventName, getEventPayload(element));
+                    if (!wasOpen && element.open) {
+                        trackMonetizationEvent(eventName, buildMonetizationEventPayload(element));
                     }
                 });
                 return;
             }
 
-            trackMonetizationEvent(eventName, getEventPayload(element));
+            trackMonetizationEvent(eventName, buildMonetizationEventPayload(element));
         }
 
         document.addEventListener("click", handleClick);

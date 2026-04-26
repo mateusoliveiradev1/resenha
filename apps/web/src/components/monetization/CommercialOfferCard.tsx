@@ -1,29 +1,7 @@
 import Link from "next/link";
 import { Badge, Button, Card, CardContent, cn } from "@resenha/ui";
 import { ArrowRight, CheckCircle2, PlusCircle } from "lucide-react";
-
-interface MonetizationCta {
-    label: string;
-    href: string;
-    external?: boolean;
-}
-
-export interface CommercialOffer {
-    badge?: string;
-    title: string;
-    audience?: string;
-    description: string;
-    inclusions: string[];
-    note?: string;
-    cta?: MonetizationCta;
-}
-
-export interface CommercialAddOn {
-    title: string;
-    description: string;
-    badge?: string;
-    cta?: MonetizationCta;
-}
+import type { CommercialAddOn, CommercialOffer, MonetizationCta } from "@/lib/commercialOfferContent";
 
 interface CommercialOfferCardProps {
     offer: CommercialOffer;

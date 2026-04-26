@@ -1,11 +1,26 @@
 import { Badge, Card } from "@resenha/ui";
 import { db } from "@resenha/db";
 import { leadFollowUpAutomations, monetizationEvents, monetizationLeads } from "@resenha/db/schema";
-import { asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, or, type SQL } from "drizzle-orm";
 import { Inbox, LineChart, MessageCircle, MousePointerClick } from "lucide-react";
-import { LeadsTable, type AdminLead } from "./LeadsTable";
+import { leadJourneyValues, leadStatusValues, type LeadJourney, type LeadStatus } from "@resenha/validators";
+import { LeadsTable, type AdminLead, type LeadFilters, type LeadFilterPeriod } from "./LeadsTable";
 
 export const dynamic = "force-dynamic";
+
+type LeadsSearchParams = {
+    status?: string | string[];
+    journey?: string | string[];
+    source?: string | string[];
+    period?: string | string[];
+    q?: string | string[];
+};
+
+const leadPeriods: Record<Exclude<LeadFilterPeriod, "all">, number> = {
+    "7d": 7,
+    "30d": 30,
+    "90d": 90
+};
 
 const eventLabels: Record<string, string> = {
     monetization_cta_click: "Cliques em CTA",
@@ -19,15 +34,108 @@ function getEventLabel(eventName: string) {
     return eventLabels[eventName] ?? eventName;
 }
 
-export default async function LeadsPage() {
-    const [leads, followUps, eventSummary, [totalLeads], [newLeads], [commercialLeads], [supportLeads]] = await Promise.all([
-        db.query.monetizationLeads.findMany({
-            orderBy: [desc(monetizationLeads.createdAt)]
-        }),
+function getSearchValue(value: string | string[] | undefined) {
+    if (Array.isArray(value)) {
+        return value[0] ?? "";
+    }
+
+    return value ?? "";
+}
+
+function parseLeadFilters(params: LeadsSearchParams): LeadFilters {
+    const statusParam = getSearchValue(params.status);
+    const journeyParam = getSearchValue(params.journey);
+    const periodParam = getSearchValue(params.period);
+    const sourceParam = getSearchValue(params.source).trim();
+    const q = getSearchValue(params.q).trim().slice(0, 120);
+    const status = leadStatusValues.includes(statusParam as LeadStatus) ? statusParam as LeadStatus : "all";
+    const journey = leadJourneyValues.includes(journeyParam as LeadJourney) ? journeyParam as LeadJourney : "all";
+    const period = periodParam in leadPeriods ? periodParam as LeadFilterPeriod : "all";
+    const source = sourceParam && sourceParam !== "all" ? sourceParam.slice(0, 120) : "all";
+
+    return { status, journey, source, period, q };
+}
+
+function getLeadWhere(filters: LeadFilters) {
+    const conditions: SQL[] = [];
+
+    if (filters.status !== "all") {
+        conditions.push(eq(monetizationLeads.status, filters.status));
+    }
+
+    if (filters.journey !== "all") {
+        conditions.push(eq(monetizationLeads.journey, filters.journey));
+    }
+
+    if (filters.source !== "all") {
+        conditions.push(eq(monetizationLeads.source, filters.source));
+    }
+
+    if (filters.period !== "all") {
+        const startsAt = new Date();
+        startsAt.setDate(startsAt.getDate() - leadPeriods[filters.period]);
+        conditions.push(gte(monetizationLeads.createdAt, startsAt));
+    }
+
+    if (filters.q) {
+        const pattern = `%${filters.q}%`;
+        const searchCondition = or(
+            ilike(monetizationLeads.name, pattern),
+            ilike(monetizationLeads.company, pattern),
+            ilike(monetizationLeads.whatsapp, pattern),
+            ilike(monetizationLeads.email, pattern)
+        );
+
+        if (searchCondition) {
+            conditions.push(searchCondition);
+        }
+    }
+
+    return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
+function getFilteredLeads(whereClause: SQL | undefined) {
+    if (whereClause) {
+        return db.select().from(monetizationLeads).where(whereClause).orderBy(desc(monetizationLeads.createdAt));
+    }
+
+    return db.select().from(monetizationLeads).orderBy(desc(monetizationLeads.createdAt));
+}
+
+function getFilteredCount(whereClause: SQL | undefined) {
+    if (whereClause) {
+        return db.select({ value: count() }).from(monetizationLeads).where(whereClause);
+    }
+
+    return db.select({ value: count() }).from(monetizationLeads);
+}
+
+export default async function LeadsPage({
+    searchParams
+}: {
+    searchParams: Promise<LeadsSearchParams>;
+}) {
+    const filters = parseLeadFilters(await searchParams);
+    const whereClause = getLeadWhere(filters);
+    const [
+        leads,
+        followUps,
+        sourceRows,
+        eventSummary,
+        [filteredLeads],
+        [totalLeads],
+        [newLeads],
+        [commercialLeads],
+        [supportLeads]
+    ] = await Promise.all([
+        getFilteredLeads(whereClause),
         db.query.leadFollowUpAutomations.findMany({
             where: eq(leadFollowUpAutomations.isActive, true),
-            orderBy: [desc(leadFollowUpAutomations.journey), asc(leadFollowUpAutomations.name)]
+            orderBy: [asc(leadFollowUpAutomations.journey), asc(leadFollowUpAutomations.triggerStatus), asc(leadFollowUpAutomations.name)]
         }),
+        db.selectDistinct({ value: monetizationLeads.source })
+            .from(monetizationLeads)
+            .orderBy(asc(monetizationLeads.source)),
         db.select({
             eventName: monetizationEvents.eventName,
             source: monetizationEvents.source,
@@ -36,6 +144,7 @@ export default async function LeadsPage() {
             .from(monetizationEvents)
             .groupBy(monetizationEvents.eventName, monetizationEvents.source)
             .orderBy(desc(count())),
+        getFilteredCount(whereClause),
         db.select({ value: count() }).from(monetizationLeads),
         db.select({ value: count() }).from(monetizationLeads).where(eq(monetizationLeads.status, "NEW")),
         db.select({ value: count() }).from(monetizationLeads).where(eq(monetizationLeads.journey, "commercial")),
@@ -53,12 +162,20 @@ export default async function LeadsPage() {
         email: lead.email,
         city: lead.city,
         supportType: lead.supportType,
+        supportDescription: lead.supportDescription,
         advertisingOption: lead.advertisingOption,
+        businessType: lead.businessType,
+        instagramOrSite: lead.instagramOrSite,
         message: lead.message,
-        createdAt: lead.createdAt
+        rawPayload: lead.rawPayload ?? null,
+        createdAt: lead.createdAt,
+        updatedAt: lead.updatedAt
     }));
 
     const focusedEvents = eventSummary.filter((item) => item.eventName in eventLabels).slice(0, 12);
+    const sourceOptions = sourceRows
+        .map((row) => row.value)
+        .filter((source): source is string => Boolean(source));
 
     const statCards = [
         { label: "Leads totais", value: totalLeads.value, icon: Inbox },
@@ -99,7 +216,14 @@ export default async function LeadsPage() {
                 })}
             </div>
 
-            <LeadsTable data={leadRows} followUps={followUps} />
+            <LeadsTable
+                data={leadRows}
+                followUps={followUps}
+                filters={filters}
+                sourceOptions={sourceOptions}
+                filteredCount={filteredLeads.value}
+                totalCount={totalLeads.value}
+            />
 
             <Card className="border-navy-800 bg-navy-900/90 p-6">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

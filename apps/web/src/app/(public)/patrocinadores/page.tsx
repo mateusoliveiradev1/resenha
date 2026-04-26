@@ -84,12 +84,20 @@ async function getActivePremiumPages() {
     }
 }
 
-export default async function PatrocinadoresPage() {
-    const [sponsorList, premiumPages] = await Promise.all([
-        db.query.sponsors.findMany({
+async function getActiveSponsors() {
+    try {
+        return await db.query.sponsors.findMany({
             where: eq(sponsors.isActive, true),
             orderBy: [asc(sponsors.displayOrder), asc(sponsors.name)]
-        }),
+        });
+    } catch {
+        return [];
+    }
+}
+
+export default async function PatrocinadoresPage() {
+    const [sponsorList, premiumPages] = await Promise.all([
+        getActiveSponsors(),
         getActivePremiumPages()
     ]);
     const premiumPageBySponsor = new Map(premiumPages.filter((page) => page.sponsorId).map((page) => [page.sponsorId, page]));

@@ -1,39 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@resenha/db";
 import { monetizationEvents } from "@resenha/db/schema";
-import type { MonetizationEventName } from "@/lib/analytics";
-
-const validEvents: MonetizationEventName[] = [
-    "monetization_cta_click",
-    "support_form_start",
-    "support_form_submit",
-    "support_form_success",
-    "support_form_error",
-    "partner_form_start",
-    "partner_form_submit",
-    "partner_form_success",
-    "partner_form_error",
-    "partner_logo_click",
-    "plan_cta_click",
-    "faq_expand",
-];
+import { normalizeMonetizationEventInput } from "@resenha/validators";
 
 type AnalyticsBody = {
     name?: string;
-    payload?: Record<string, unknown>;
+    payload?: unknown;
 };
-
-function getString(payload: Record<string, unknown>, key: string) {
-    const value = payload[key];
-
-    return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function getJourney(payload: Record<string, unknown>) {
-    const value = getString(payload, "journey");
-
-    return value === "support" || value === "commercial" ? value : null;
-}
 
 export async function POST(request: Request) {
     let body: AnalyticsBody;
@@ -44,25 +17,27 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: false, error: "Invalid JSON body." }, { status: 400 });
     }
 
-    if (!body.name || !validEvents.includes(body.name as MonetizationEventName)) {
-        return NextResponse.json({ ok: false, error: "Invalid analytics event." }, { status: 422 });
+    const normalized = normalizeMonetizationEventInput(body.name, body.payload ?? {});
+
+    if (!normalized.success) {
+        return NextResponse.json({ ok: false, error: normalized.error }, { status: 422 });
     }
 
-    const payload = body.payload ?? {};
+    const eventInput = normalized.data;
 
     await db.insert(monetizationEvents).values({
-        eventName: body.name as MonetizationEventName,
-        source: getString(payload, "source"),
-        journey: getJourney(payload),
-        label: getString(payload, "label"),
-        destination: getString(payload, "destination"),
-        partnerName: getString(payload, "partner_name"),
-        url: getString(payload, "url"),
-        planName: getString(payload, "plan_name"),
-        offerName: getString(payload, "offer_name"),
-        page: getString(payload, "page"),
-        question: getString(payload, "question"),
-        rawPayload: payload
+        eventName: eventInput.eventName,
+        source: eventInput.source,
+        journey: eventInput.journey,
+        label: eventInput.label,
+        destination: eventInput.destination,
+        partnerName: eventInput.partnerName,
+        url: eventInput.url,
+        planName: eventInput.planName,
+        offerName: eventInput.offerName,
+        page: eventInput.page,
+        question: eventInput.question,
+        rawPayload: eventInput.rawPayload
     });
 
     return NextResponse.json({ ok: true }, { status: 202 });

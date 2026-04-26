@@ -25,6 +25,7 @@ coverage/
 **/coverage/
 .cache/
 **/.cache/
+**/.tmp-tests/
 .parcel-cache/
 *.tsbuildinfo
 next-env.d.ts

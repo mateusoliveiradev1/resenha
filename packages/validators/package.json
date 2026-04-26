@@ -5,6 +5,9 @@
     "exports": {
         ".": "./src/index.ts"
     },
+    "scripts": {
+        "test": "tsc src/monetization.test.ts --outDir .tmp-tests --module commonjs --target es2022 --moduleResolution node --esModuleInterop --skipLibCheck --lib es2022,dom && node .tmp-tests/monetization.test.js && node -e \"require('node:fs').rmSync('.tmp-tests',{recursive:true,force:true})\""
+    },
     "dependencies": {
         "zod": "^3.24.0"
     },

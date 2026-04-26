@@ -19,10 +19,11 @@ import {
     Trophy,
     Users
 } from "lucide-react";
-import { CommercialOfferCard, type CommercialAddOn, type CommercialOffer } from "@/components/monetization/CommercialOfferCard";
+import { CommercialOfferCard } from "@/components/monetization/CommercialOfferCard";
 import { FaqBlock, type FaqItem } from "@/components/monetization/FaqBlock";
 import { LeadForm } from "@/components/monetization/LeadForm";
 import { CONTACT_CHANNELS, buildWhatsAppHref } from "@/lib/contact";
+import { resolveCommercialOfferContent, type CommercialAddOn, type CommercialOffer } from "@/lib/commercialOfferContent";
 import { createPageMetadata } from "@/lib/seo";
 
 type PartnerItem = {
@@ -85,7 +86,7 @@ const partnerPlacements: PlacementItem[] = [
         title: "Nas materias do Resenha",
         description: "A marca pode aparecer como oferecimento sinalizado em conteudos combinados.",
         badge: "Oferecimento",
-        sample: "Oferecimento: Pizzaria Boa Massa",
+        sample: "Oferecimento: Sua empresa",
         action: "Abrir WhatsApp",
         context: "Materia",
         icon: Newspaper
@@ -94,7 +95,7 @@ const partnerPlacements: PlacementItem[] = [
         title: "Na pagina de parceiros",
         description: "Card com logo ou nome, texto curto e link para WhatsApp, Instagram ou site.",
         badge: "Parceiro oficial",
-        sample: "Boa Massa Pizzaria",
+        sample: "Sua empresa",
         action: "Ver Instagram",
         context: "Vitrine",
         icon: Store
@@ -307,39 +308,7 @@ async function getCommercialOfferContent() {
     } catch {
         return { offer: commercialOffer, addOns: commercialAddOns };
     }
-    const baseOffer = rows.find((row) => row.slot === "base_offer");
-    const addOnRows = rows.filter((row) => row.slot === "addon");
-
-    const offer: CommercialOffer = baseOffer
-        ? {
-            badge: baseOffer.badge ?? undefined,
-            title: baseOffer.title,
-            audience: baseOffer.audience ?? undefined,
-            description: baseOffer.description,
-            inclusions: baseOffer.inclusions?.length ? baseOffer.inclusions : commercialOffer.inclusions,
-            note: baseOffer.note ?? undefined,
-            cta: {
-                label: baseOffer.ctaLabel ?? commercialOffer.cta?.label ?? "Quero aparecer no Resenha",
-                href: buildDynamicCommercialWhatsappHref(baseOffer.title),
-                external: true
-            }
-        }
-        : commercialOffer;
-
-    const addOns: CommercialAddOn[] = addOnRows.length
-        ? addOnRows.map((row) => ({
-            title: row.title,
-            description: row.description,
-            badge: row.badge ?? undefined,
-            cta: {
-                label: row.ctaLabel ?? "Falar no WhatsApp",
-                href: buildDynamicCommercialWhatsappHref(row.title),
-                external: true
-            }
-        }))
-        : commercialAddOns;
-
-    return { offer, addOns };
+    return resolveCommercialOfferContent(rows, commercialOffer, commercialAddOns, buildDynamicCommercialWhatsappHref);
 }
 
 type ActiveHeroExperiment = typeof copyCtaExperiments.$inferSelect;
@@ -516,7 +485,7 @@ export default async function SejaParceiroPage() {
                                         Oferecimento
                                     </Badge>
                                     <p className="font-display text-xl font-bold text-cream-100">
-                                        Pizzaria Boa Massa apoia a cobertura da rodada
+                                        Sua empresa apoia a cobertura da rodada
                                     </p>
                                     <p className="mt-3 text-sm leading-7 text-cream-300">
                                         Um bloco discreto, com cara de Resenha, levando a pessoa para o contato da empresa.
@@ -528,7 +497,7 @@ export default async function SejaParceiroPage() {
                                             Parceiro oficial
                                         </p>
                                         <p className="mt-2 font-display text-lg font-bold text-cream-100">
-                                            Boa Massa Pizzaria
+                                            Sua empresa
                                         </p>
                                         <p className="mt-2 text-sm text-cream-300">Abrir WhatsApp</p>
                                     </div>
